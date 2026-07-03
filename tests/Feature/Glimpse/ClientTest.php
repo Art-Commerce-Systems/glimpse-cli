@@ -9,18 +9,6 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\Fixtures\Images;
 
-function fakeTransformResponse(): array
-{
-    return ['data' => [
-        'output' => ['type' => 'BASE64', 'data' => Images::JPG_BASE64],
-        'format' => ImageFormat::Jpg->value,
-        'mime_type' => 'image/jpeg',
-        'size' => strlen(Images::jpg()),
-        'width' => 1280,
-        'height' => 720,
-    ]];
-}
-
 beforeEach(function () {
     putenv('GLIMPSE_TOKEN=test-token');
 });
