@@ -21,6 +21,16 @@ The distributed `glimpse` binary is a compiled PHAR (`builds/glimpse`), so end u
 glimpse self-update
 ```
 
+### Standalone PHAR
+
+`composer global` shares one dependency pool across all your global tools, so it can fail if another tool pins an incompatible `illuminate/*` version. The PHAR bundles its dependencies and sidesteps that entirely:
+
+```bash
+curl -Lo /usr/local/bin/glimpse https://raw.githubusercontent.com/Art-Commerce-Systems/glimpse-cli/v0.1.0/builds/glimpse
+chmod +x /usr/local/bin/glimpse
+glimpse self-update   # upgrades in place from then on
+```
+
 ### From source
 
 ```bash
