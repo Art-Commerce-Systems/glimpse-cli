@@ -9,30 +9,25 @@ A command line client for the [Glimpse image API](https://glimpseimg.com). Conve
 
 ## Installation
 
-While the repository is private, clone and install locally:
-
-```bash
-git clone git@github.com:Art-Commerce-Systems/glimpse-cli.git
-cd glimpse-cli
-composer install
-```
-
-Then either call the binary directly (`php glimpse ...`) or add an alias:
-
-```bash
-alias glimpse="php /path/to/glimpse-cli/glimpse"
-```
-
-Once published to Packagist, installation will be:
-
 ```bash
 composer global require glimpseimg/cli
 ```
+
+Make sure Composer's global bin directory (`composer global config bin-dir --absolute`) is on your `PATH`, then run `glimpse`.
 
 The distributed `glimpse` binary is a compiled PHAR (`builds/glimpse`), so end users never see the framework's development commands, and standalone installs can update in place:
 
 ```bash
 glimpse self-update
+```
+
+### From source
+
+```bash
+git clone https://github.com/Art-Commerce-Systems/glimpse-cli.git
+cd glimpse-cli
+composer install
+php glimpse --version
 ```
 
 ## Authentication
