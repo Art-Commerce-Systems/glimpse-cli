@@ -128,6 +128,12 @@ composer test        # Pint (check), PHPStan, and the Pest suite
 ### Releasing
 
 ```bash
+make release VERSION=vX.Y.Z
+```
+
+This runs the test suite, compiles the PHAR, commits `builds/glimpse`, pushes, and creates the GitHub release with the binary attached — the equivalent of:
+
+```bash
 php glimpse app:build glimpse --build-version=vX.Y.Z
 git add builds/glimpse && git commit -m "Build vX.Y.Z" && git push
 gh release create vX.Y.Z builds/glimpse --title vX.Y.Z --generate-notes
