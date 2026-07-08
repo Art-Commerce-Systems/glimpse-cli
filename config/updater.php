@@ -1,6 +1,6 @@
 <?php
 
-use LaravelZero\Framework\Components\Updater\Strategy\GithubStrategy;
+use App\Updater\GithubReleasesStrategy;
 
 return [
 
@@ -10,12 +10,14 @@ return [
     |--------------------------------------------------------------------------
     |
     | The strategy used by the "self-update" command to locate new versions
-    | of the application. The GitHub strategy discovers versions through
-    | Packagist and downloads the committed builds/glimpse PHAR from the
-    | matching tag, so tagging a release is all a new version needs.
+    | of the application. Versions are discovered through Packagist and the
+    | new PHAR is downloaded from the "glimpse" asset attached to the GitHub
+    | release of the matching tag. The build must be stamped with the tag
+    | name verbatim (see README), since the updater compares build version
+    | and tag as plain strings.
     |
     */
 
-    'strategy' => GithubStrategy::class,
+    'strategy' => GithubReleasesStrategy::class,
 
 ];

@@ -26,7 +26,7 @@ glimpse self-update
 `composer global` shares one dependency pool across all your global tools, so it can fail if another tool pins an incompatible `illuminate/*` version. The PHAR bundles its dependencies and sidesteps that entirely:
 
 ```bash
-curl -Lo /usr/local/bin/glimpse https://raw.githubusercontent.com/Art-Commerce-Systems/glimpse-cli/v0.1.0/builds/glimpse
+curl -Lo /usr/local/bin/glimpse https://github.com/Art-Commerce-Systems/glimpse-cli/releases/latest/download/glimpse
 chmod +x /usr/local/bin/glimpse
 glimpse self-update   # upgrades in place from then on
 ```
@@ -128,12 +128,14 @@ composer test        # Pint (check), PHPStan, and the Pest suite
 ### Releasing
 
 ```bash
-php glimpse app:build glimpse --build-version=X.Y.Z
-git add builds/glimpse && git commit -m "Build vX.Y.Z"
-git tag vX.Y.Z && git push --tags
+php glimpse app:build glimpse --build-version=vX.Y.Z
+git add builds/glimpse && git commit -m "Build vX.Y.Z" && git push
+gh release create vX.Y.Z builds/glimpse --title vX.Y.Z --generate-notes
 ```
 
-`self-update` discovers versions through Packagist and downloads `builds/glimpse` from the matching tag, so committing the fresh build before tagging is what ships it.
+`self-update` discovers versions through Packagist and downloads the `glimpse` PHAR attached to the GitHub release of the matching tag, so the release must carry the binary as an asset under exactly that name. Committing the fresh build keeps `composer global require` working (composer's `bin` points at `builds/glimpse`) and lets pre-0.1.1 installs, which download `builds/glimpse` from the tag itself, still update.
+
+The `--build-version` must be the tag name verbatim, including the `v` prefix. The updater compares the embedded build version against the Packagist tag as plain strings, so a build stamped `0.1.0` never equals the tag `v0.1.0` and `self-update` would keep re-downloading the release it is already running.
 
 ## License
 
