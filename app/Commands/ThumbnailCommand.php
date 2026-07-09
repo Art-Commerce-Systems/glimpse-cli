@@ -12,6 +12,7 @@ class ThumbnailCommand extends GlimpseCommand
         {--height= : Maximum height in pixels (API default 300)}
         {--quality= : Re-encode quality 1-100 (API default 60)}
         {--o|output= : Output path, or - for stdout}
+        {--i|in-place : Write the result over the input file}
         {--json : Print the result metadata as JSON}
         {--force : Overwrite the output file if it exists}';
 
@@ -30,8 +31,7 @@ class ThumbnailCommand extends GlimpseCommand
                 $this->intOption('quality'),
             );
 
-            $path = $output ?? $this->defaultOutputPath($input, 'thumb', $result->format);
-            $this->writeImage($path, $result->bytes);
+            $path = $this->writeResult($input, $output, 'thumb', $result);
             $this->emit($result, $path);
 
             return self::SUCCESS;

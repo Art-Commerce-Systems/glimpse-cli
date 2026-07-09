@@ -43,19 +43,33 @@ abstract class GlimpseCommand extends Command
         return $bytes;
     }
 
-    protected function writeImage(string $path, string $bytes): void
+    /**
+     * Resolve the final output path, write the result to it, and remove the
+     * original when an in-place write changed the extension.
+     */
+    protected function writeResult(string $input, ?string $output, ?string $suffix, ImageResult $result): string
     {
-        if ($path === '-') {
-            fwrite(STDOUT, $bytes);
+        $path = $output ?? $this->defaultOutputPath($input, $this->inPlace() ? null : $suffix, $result->format);
 
-            return;
+        if ($path === '-') {
+            fwrite(STDOUT, $result->bytes);
+
+            return $path;
         }
 
-        if (file_exists($path) && ! $this->option('force')) {
+        $overwritingInput = $this->inPlace() && $path === $input;
+
+        if (file_exists($path) && ! $overwritingInput && ! $this->option('force')) {
             throw new ApiException("{$path} already exists. Use --force to overwrite.");
         }
 
-        file_put_contents($path, $bytes);
+        file_put_contents($path, $result->bytes);
+
+        if ($this->inPlace() && $path !== $input) {
+            unlink($input);
+        }
+
+        return $path;
     }
 
     /**
@@ -67,6 +81,16 @@ abstract class GlimpseCommand extends Command
         $output = $this->option('output');
         $output = is_string($output) && $output !== '' ? $output : null;
 
+        if ($this->inPlace()) {
+            if ($output !== null) {
+                throw new ApiException('--in-place cannot be combined with -o/--output.');
+            }
+
+            if ($input === '-') {
+                throw new ApiException('--in-place cannot be used when reading from stdin.');
+            }
+        }
+
         if ($input === '-' && $output === null) {
             throw new ApiException('Provide -o/--output when reading from stdin.');
         }
@@ -76,6 +100,11 @@ abstract class GlimpseCommand extends Command
         }
 
         return $output;
+    }
+
+    protected function inPlace(): bool
+    {
+        return (bool) $this->option('in-place');
     }
 
     protected function defaultOutputPath(string $input, ?string $suffix, string $extension): string

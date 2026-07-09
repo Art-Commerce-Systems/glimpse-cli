@@ -66,11 +66,14 @@ Environment variables override the stored config, which is handy for CI and loca
 
 All commands accept a file path as input, or `-` to read from stdin. Output defaults to a file next to the input; pass `--output=-` (short form `-o-`) to write the raw image bytes to stdout. Use `--json` for machine-readable metadata and `--force` to overwrite an existing output file.
 
+Pass `--in-place` (short form `-i`) to write the result over the input file instead of creating a suffixed sibling. When `convert` changes the format, the input is replaced by a file with the new extension (`a.jpg` → `a.avif`); overwriting the input itself never needs `--force`, but overwriting a *different* existing file (an already-present `a.avif`, say) still does.
+
 ### Convert
 
 ```bash
 glimpse convert photo.png --format=webp          # writes photo.webp
 glimpse convert photo.png -o hero.avif           # format inferred from the extension
+glimpse convert photo.png --format=avif -i       # replaces photo.png with photo.avif
 ```
 
 Supported formats: `jpg`, `png`, `webp`, `gif`, `avif`.
@@ -80,6 +83,7 @@ Supported formats: `jpg`, `png`, `webp`, `gif`, `avif`.
 ```bash
 glimpse optimize photo.jpg                       # lossless optimizer chain, writes photo.optimized.jpg
 glimpse optimize photo.jpg --quality=70          # lossy re-encode at quality 70
+glimpse optimize photo.jpg --in-place            # optimizes photo.jpg itself
 ```
 
 ### Resize
@@ -89,6 +93,7 @@ Fits the image into a bounding box, preserving aspect ratio and never upscaling.
 ```bash
 glimpse resize photo.jpg --width=800             # writes photo.resized.jpg
 glimpse resize photo.jpg --width=800 --height=600
+glimpse resize photo.jpg --width=800 -i          # shrinks photo.jpg itself
 ```
 
 ### Thumbnail
@@ -98,6 +103,7 @@ Resize plus lossy re-encode in one pass. API defaults: 300x300 box at quality 60
 ```bash
 glimpse thumbnail photo.jpg                      # writes photo.thumb.jpg
 glimpse thumbnail photo.jpg --width=150 --quality=50
+glimpse thumbnail photo.jpg -i                   # turns photo.jpg itself into the thumbnail
 ```
 
 ### Info

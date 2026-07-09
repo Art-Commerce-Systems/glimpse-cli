@@ -12,6 +12,7 @@ class ResizeCommand extends GlimpseCommand
         {--width= : Maximum width in pixels}
         {--height= : Maximum height in pixels}
         {--o|output= : Output path, or - for stdout}
+        {--i|in-place : Write the result over the input file}
         {--json : Print the result metadata as JSON}
         {--force : Overwrite the output file if it exists}';
 
@@ -31,8 +32,7 @@ class ResizeCommand extends GlimpseCommand
 
             $result = $client->resize($this->readImage($input), $width, $height);
 
-            $path = $output ?? $this->defaultOutputPath($input, 'resized', $result->format);
-            $this->writeImage($path, $result->bytes);
+            $path = $this->writeResult($input, $output, 'resized', $result);
             $this->emit($result, $path);
 
             return self::SUCCESS;

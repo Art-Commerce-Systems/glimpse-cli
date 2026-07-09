@@ -29,6 +29,19 @@ test('creates a thumbnail with API defaults and writes a .thumb output', functio
     });
 });
 
+test('--in-place overwrites the input file without --force', function () {
+    Http::fake(['*/v1/thumbnail' => Http::response(fakeTransformResponse('png', 'image/png'))]);
+
+    $input = createImage('photo.png');
+
+    $this->artisan('thumbnail', ['input' => $input, '--in-place' => true])
+        ->expectsOutputToContain("Wrote {$input}")
+        ->assertExitCode(0);
+
+    expect(file_get_contents($input))->toBe(Images::jpg())
+        ->and(file_exists(dirname($input).'/photo.thumb.png'))->toBeFalse();
+});
+
 test('passes width, height, and quality through to the API', function () {
     Http::fake(['*/v1/thumbnail' => Http::response(fakeTransformResponse())]);
 

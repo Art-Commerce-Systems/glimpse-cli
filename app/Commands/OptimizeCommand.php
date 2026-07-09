@@ -10,6 +10,7 @@ class OptimizeCommand extends GlimpseCommand
         {input : Path to the image, or - for stdin}
         {--quality= : Re-encode quality 1-100 (omit for the lossless optimizer chain)}
         {--o|output= : Output path, or - for stdout}
+        {--i|in-place : Write the result over the input file}
         {--json : Print the result metadata as JSON}
         {--force : Overwrite the output file if it exists}';
 
@@ -24,8 +25,7 @@ class OptimizeCommand extends GlimpseCommand
 
             $result = $client->optimize($this->readImage($input), $quality);
 
-            $path = $output ?? $this->defaultOutputPath($input, 'optimized', $result->format);
-            $this->writeImage($path, $result->bytes);
+            $path = $this->writeResult($input, $output, 'optimized', $result);
             $this->emit($result, $path);
 
             return self::SUCCESS;

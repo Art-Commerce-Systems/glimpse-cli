@@ -23,6 +23,19 @@ test('optimizes and writes a .optimized output next to the input', function () {
     Http::assertSent(fn (Request $request) => $request['quality'] === 70);
 });
 
+test('--in-place overwrites the input file without --force', function () {
+    Http::fake(['*/v1/optimize' => Http::response(fakeTransformResponse('png', 'image/png'))]);
+
+    $input = createImage('photo.png');
+
+    $this->artisan('optimize', ['input' => $input, '--in-place' => true])
+        ->expectsOutputToContain("Wrote {$input}")
+        ->assertExitCode(0);
+
+    expect(file_get_contents($input))->toBe(Images::jpg())
+        ->and(file_exists(dirname($input).'/photo.optimized.png'))->toBeFalse();
+});
+
 test('rejects a non-numeric quality before any HTTP request', function () {
     Http::fake();
 

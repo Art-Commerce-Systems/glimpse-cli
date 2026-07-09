@@ -101,6 +101,85 @@ test('overwrites the output file with --force', function () {
     expect(file_get_contents($existing))->toBe(Images::jpg());
 });
 
+test('--in-place replaces the input with the converted file', function () {
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.webp';
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp', '--in-place' => true])
+        ->expectsOutputToContain("Wrote {$expectedOutput}")
+        ->assertExitCode(0);
+
+    expect(file_get_contents($expectedOutput))->toBe(Images::jpg())
+        ->and(file_exists($input))->toBeFalse();
+});
+
+test('--in-place overwrites the input without --force when the format is unchanged', function () {
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('png', 'image/png'))]);
+
+    $input = createImage('photo.png');
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'png', '--in-place' => true])
+        ->expectsOutputToContain("Wrote {$input}")
+        ->assertExitCode(0);
+
+    expect(file_get_contents($input))->toBe(Images::jpg());
+});
+
+test('--in-place fails fast when the converted target already exists without --force', function () {
+    Http::fake();
+
+    $input = createImage('photo.png');
+    $existing = dirname($input).'/photo.webp';
+    file_put_contents($existing, 'original');
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp', '--in-place' => true])
+        ->expectsOutputToContain("{$existing} already exists. Use --force to overwrite.")
+        ->assertExitCode(1);
+
+    expect(file_get_contents($existing))->toBe('original')
+        ->and(file_exists($input))->toBeTrue();
+
+    Http::assertNothingSent();
+});
+
+test('--in-place with --force overwrites the converted target and removes the input', function () {
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    $existing = dirname($input).'/photo.webp';
+    file_put_contents($existing, 'original');
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp', '--in-place' => true, '--force' => true])
+        ->assertExitCode(0);
+
+    expect(file_get_contents($existing))->toBe(Images::jpg())
+        ->and(file_exists($input))->toBeFalse();
+});
+
+test('--in-place cannot be combined with --output', function () {
+    Http::fake();
+
+    $input = createImage('photo.png');
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp', '--in-place' => true, '--output' => dirname($input).'/other.webp'])
+        ->expectsOutputToContain('--in-place cannot be combined with -o/--output.')
+        ->assertExitCode(1);
+
+    Http::assertNothingSent();
+});
+
+test('--in-place cannot be used with stdin input', function () {
+    Http::fake();
+
+    $this->artisan('convert', ['input' => '-', '--format' => 'webp', '--in-place' => true])
+        ->expectsOutputToContain('--in-place cannot be used when reading from stdin.')
+        ->assertExitCode(1);
+
+    Http::assertNothingSent();
+});
+
 test('prints result metadata as JSON with --json', function () {
     Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
 

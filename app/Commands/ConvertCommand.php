@@ -12,6 +12,7 @@ class ConvertCommand extends GlimpseCommand
         {input : Path to the image, or - for stdin}
         {--format= : Target format (jpg, png, webp, gif, avif); inferred from --output when omitted}
         {--o|output= : Output path, or - for stdout}
+        {--i|in-place : Replace the input file with the converted image, deleting the original}
         {--json : Print the result metadata as JSON}
         {--force : Overwrite the output file if it exists}';
 
@@ -24,10 +25,17 @@ class ConvertCommand extends GlimpseCommand
             $output = $this->resolveOutput($input);
             $format = $this->resolveFormat($output);
 
+            if ($this->inPlace()) {
+                $target = $this->defaultOutputPath($input, null, $format->value);
+
+                if ($target !== $input && file_exists($target) && ! $this->option('force')) {
+                    throw new ApiException("{$target} already exists. Use --force to overwrite.");
+                }
+            }
+
             $result = $client->convert($this->readImage($input), $format);
 
-            $path = $output ?? $this->defaultOutputPath($input, null, $result->format);
-            $this->writeImage($path, $result->bytes);
+            $path = $this->writeResult($input, $output, null, $result);
             $this->emit($result, $path);
 
             return self::SUCCESS;

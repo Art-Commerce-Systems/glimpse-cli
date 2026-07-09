@@ -24,6 +24,33 @@ test('resizes and writes a .resized output next to the input', function () {
         && ! array_key_exists('height', $request->data()));
 });
 
+test('--in-place overwrites the input file without --force', function () {
+    Http::fake(['*/v1/resize' => Http::response(fakeTransformResponse('png', 'image/png'))]);
+
+    $input = createImage('photo.png');
+
+    $this->artisan('resize', ['input' => $input, '--width' => '800', '--in-place' => true])
+        ->expectsOutputToContain("Wrote {$input}")
+        ->assertExitCode(0);
+
+    expect(file_get_contents($input))->toBe(Images::jpg())
+        ->and(file_exists(dirname($input).'/photo.resized.png'))->toBeFalse();
+});
+
+test('--in-place replaces the input when the API returns a different format', function () {
+    Http::fake(['*/v1/resize' => Http::response(fakeTransformResponse())]);
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.jpg';
+
+    $this->artisan('resize', ['input' => $input, '--width' => '800', '--in-place' => true])
+        ->expectsOutputToContain("Wrote {$expectedOutput}")
+        ->assertExitCode(0);
+
+    expect(file_get_contents($expectedOutput))->toBe(Images::jpg())
+        ->and(file_exists($input))->toBeFalse();
+});
+
 test('requires at least one of --width or --height before any HTTP request', function () {
     Http::fake();
 
