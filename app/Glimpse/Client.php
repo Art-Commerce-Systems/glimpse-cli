@@ -49,6 +49,25 @@ final class Client
     }
 
     /**
+     * Estimate converted output sizes from metadata alone; no image bytes
+     * are sent.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function estimate(ImageFormat $format, int $size, ?int $width = null, ?int $height = null, ?int $quality = null): array
+    {
+        $estimates = $this->post('/v1/estimate', [
+            'format' => $format->value,
+            'size' => $size,
+            'width' => $width,
+            'height' => $height,
+            'quality' => $quality,
+        ]);
+
+        return array_values(array_filter($estimates, 'is_array'));
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function user(?string $token = null): array
@@ -64,11 +83,11 @@ final class Client
      * @param  array<string, int|string|bool|null>  $params
      * @return array<string, mixed>
      */
-    private function post(string $path, array $params, string $bytes): array
+    private function post(string $path, array $params, ?string $bytes = null): array
     {
-        $payload = [
+        $payload = ($bytes === null ? [] : [
             'input' => ['type' => 'BASE64', 'data' => base64_encode($bytes)],
-        ] + array_filter($params, fn ($value) => $value !== null);
+        ]) + array_filter($params, fn ($value) => $value !== null);
 
         $response = $this->request($this->requireToken())->post($path, $payload);
 
