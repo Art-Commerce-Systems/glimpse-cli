@@ -20,7 +20,11 @@ abstract class GlimpseCommand extends Command
         return is_string($input) ? $input : '';
     }
 
-    protected function readImage(string $path): string
+    /**
+     * Read the input image bytes. The size limit mirrors the API's upload
+     * cap; commands that never upload the bytes (estimate) disable it.
+     */
+    protected function readImage(string $path, bool $limitBytes = true): string
     {
         if ($path === '-') {
             $bytes = (string) stream_get_contents(STDIN);
@@ -36,7 +40,7 @@ abstract class GlimpseCommand extends Command
             throw new ApiException('The input image is empty.');
         }
 
-        if (strlen($bytes) > self::MAX_INPUT_BYTES) {
+        if ($limitBytes && strlen($bytes) > self::MAX_INPUT_BYTES) {
             throw new ApiException('The image exceeds the 15 MiB limit.');
         }
 

@@ -116,6 +116,37 @@ test('a missing token fails before any HTTP request', function () {
     Http::assertNothingSent();
 });
 
+test('estimate posts metadata only, with no image payload', function () {
+    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+
+    $estimates = app(Client::class)->estimate(ImageFormat::Jpg, 2_500_000, 4032, 3024, 80);
+
+    expect($estimates)->toHaveCount(4)
+        ->and($estimates[0]['format'])->toBe('jpg')
+        ->and($estimates[3]['format'])->toBe('avif');
+
+    Http::assertSent(function (Request $request) {
+        return $request->url() === 'https://glimpseimg.com/api/v1/estimate'
+            && $request->hasHeader('Authorization', 'Bearer test-token')
+            && ! array_key_exists('input', $request->data())
+            && $request['format'] === ImageFormat::Jpg->value
+            && $request['size'] === 2_500_000
+            && $request['width'] === 4032
+            && $request['height'] === 3024
+            && $request['quality'] === 80;
+    });
+});
+
+test('estimate omits dimensions and quality from the payload when null', function () {
+    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+
+    app(Client::class)->estimate(ImageFormat::Png, 1_000_000);
+
+    Http::assertSent(fn (Request $request) => ! array_key_exists('width', $request->data())
+        && ! array_key_exists('height', $request->data())
+        && ! array_key_exists('quality', $request->data()));
+});
+
 test('a 401 response maps to AuthException with the auth hint', function () {
     Http::fake(['*/v1/optimize' => Http::response(['message' => 'Unauthenticated.'], 401)]);
 
