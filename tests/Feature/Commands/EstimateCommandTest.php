@@ -21,8 +21,17 @@ test('derives the payload from the local file and uploads no bytes', function ()
             && $request['size'] === 70
             && $request['width'] === 1
             && $request['height'] === 1
+            && is_float($request['sample_bpp'])
+            && $request['sample_bpp'] > 0
             && ! array_key_exists('quality', $request->data());
     });
+});
+
+test('mentions the sample in the source line', function () {
+    $exitCode = Artisan::call('estimate', ['input' => createImage()]);
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain(', sampled');
 });
 
 test('prints a table with one row per format', function () {

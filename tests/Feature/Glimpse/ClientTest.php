@@ -137,14 +137,23 @@ test('estimate posts metadata only, with no image payload', function () {
     });
 });
 
-test('estimate omits dimensions and quality from the payload when null', function () {
+test('estimate omits dimensions, quality, and sample from the payload when null', function () {
     Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
 
     app(Client::class)->estimate(ImageFormat::Png, 1_000_000);
 
     Http::assertSent(fn (Request $request) => ! array_key_exists('width', $request->data())
         && ! array_key_exists('height', $request->data())
-        && ! array_key_exists('quality', $request->data()));
+        && ! array_key_exists('quality', $request->data())
+        && ! array_key_exists('sample_bpp', $request->data()));
+});
+
+test('estimate sends the sample bpp when given', function () {
+    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+
+    app(Client::class)->estimate(ImageFormat::Jpg, 2_500_000, 4032, 3024, sampleBpp: 0.7066);
+
+    Http::assertSent(fn (Request $request) => $request['sample_bpp'] === 0.7066);
 });
 
 test('a 401 response maps to AuthException with the auth hint', function () {
