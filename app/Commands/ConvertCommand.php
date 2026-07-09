@@ -12,7 +12,7 @@ class ConvertCommand extends GlimpseCommand
         {input : Path to the image, or - for stdin}
         {--format= : Target format (jpg, png, webp, gif, avif); inferred from --output when omitted}
         {--o|output= : Output path, or - for stdout}
-        {--i|in-place : Replace the input file with the converted image, deleting the original when the extension changes}
+        {--i|in-place : Replace the input file with the converted image, deleting the original}
         {--json : Print the result metadata as JSON}
         {--force : Overwrite the output file if it exists}';
 
