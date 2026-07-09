@@ -26,7 +26,7 @@ glimpse self-update
 `composer global` shares one dependency pool across all your global tools, so it can fail if another tool pins an incompatible `illuminate/*` version. The PHAR bundles its dependencies and sidesteps that entirely:
 
 ```bash
-curl -Lo /usr/local/bin/glimpse https://github.com/Art-Commerce-Systems/glimpse-cli/releases/latest/download/glimpse
+curl -Lo /usr/local/bin/glimpse https://github.com/mathiasgrimm/glimpse-cli/releases/latest/download/glimpse
 chmod +x /usr/local/bin/glimpse
 glimpse self-update   # upgrades in place from then on
 ```
@@ -34,7 +34,7 @@ glimpse self-update   # upgrades in place from then on
 ### From source
 
 ```bash
-git clone https://github.com/Art-Commerce-Systems/glimpse-cli.git
+git clone https://github.com/mathiasgrimm/glimpse-cli.git
 cd glimpse-cli
 composer install
 php glimpse --version

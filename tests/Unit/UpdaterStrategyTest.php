@@ -17,8 +17,8 @@ test('the download url points at the release asset named after the phar', functi
     (new ReflectionProperty(HumbugGithubStrategy::class, 'remoteVersion'))->setValue($strategy, 'v0.2.0');
 
     $url = (new ReflectionMethod($strategy, 'getDownloadUrl'))->invoke($strategy, [
-        'source' => ['url' => 'https://github.com/Art-Commerce-Systems/glimpse-cli.git'],
+        'source' => ['url' => 'https://github.com/mathiasgrimm/glimpse-cli.git'],
     ]);
 
-    expect($url)->toBe('https://github.com/Art-Commerce-Systems/glimpse-cli/releases/download/v0.2.0/glimpse');
+    expect($url)->toBe('https://github.com/mathiasgrimm/glimpse-cli/releases/download/v0.2.0/glimpse');
 });
