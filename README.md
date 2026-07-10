@@ -237,5 +237,5 @@ glimpse-cli is open-source software licensed under the [MIT license](LICENSE).
 
 <p align="center">
   <sub>Every image on this page was converted by glimpse itself, including the animated banner (GIF in, animated AVIF out).<br>
-  Get your API key at <a href="https://glimpseimg.com"><strong>glimpseimg.com</strong></a>. Start on the free tier.</sub>
+  Grab a free API key at <a href="https://glimpseimg.com"><strong>glimpseimg.com</strong></a> (<strong>Settings → API Tokens</strong>).</sub>
 </p>
