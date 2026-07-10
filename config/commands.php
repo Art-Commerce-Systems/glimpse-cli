@@ -1,5 +1,6 @@
 <?php
 
+use App\Commands\SummaryCommand as GlimpseSummaryCommand;
 use Illuminate\Console\Scheduling\ScheduleFinishCommand;
 use Illuminate\Console\Scheduling\ScheduleListCommand;
 use Illuminate\Console\Scheduling\ScheduleRunCommand;
@@ -22,7 +23,7 @@ return [
     |
     */
 
-    'default' => SummaryCommand::class,
+    'default' => GlimpseSummaryCommand::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -65,6 +66,7 @@ return [
 
     'hidden' => [
         SummaryCommand::class,
+        GlimpseSummaryCommand::class,
         DumpCompletionCommand::class,
         HelpCommand::class,
         ScheduleRunCommand::class,
