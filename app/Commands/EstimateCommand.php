@@ -90,6 +90,8 @@ class EstimateCommand extends GlimpseCommand
             $this->newLine();
         }
 
+        $rows = $this->sortBySaved($rows);
+
         $this->option('json') ? $this->emitBatchJson($rows) : $this->renderBatch($rows);
 
         $failed = count(array_filter($rows, fn (array $row) => isset($row['error'])));
@@ -215,26 +217,74 @@ class EstimateCommand extends GlimpseCommand
     }
 
     /**
+     * Order rows by absolute bytes saved, biggest saver first. Failed
+     * rows sink to the bottom.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function sortBySaved(array $rows): array
+    {
+        $saved = fn (array $row) => is_int($row['saved'] ?? null) ? $row['saved'] : PHP_INT_MIN;
+
+        usort($rows, fn (array $a, array $b) => $saved($b) <=> $saved($a));
+
+        return $rows;
+    }
+
+    /**
+     * Classify a row for the summary: green saves at least a quarter,
+     * yellow saves less than that, red would grow the file.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    private function rowColor(array $row): string
+    {
+        $saved = data_get($row, 'saved');
+
+        if (! is_int($saved)) {
+            return 'yellow';
+        }
+
+        if ($saved < 0) {
+            return 'red';
+        }
+
+        $percent = data_get($row, 'saved_percent');
+
+        return is_numeric($percent) && $percent >= 25 ? 'green' : 'yellow';
+    }
+
+    /**
+     * @param  list<string>  $cells
+     * @return list<string>
+     */
+    private function colorize(array $cells, string $color): array
+    {
+        return array_map(fn (string $cell) => "<fg={$color}>{$cell}</>", $cells);
+    }
+
+    /**
      * @param  list<array<string, mixed>>  $rows
      */
     private function renderBatch(array $rows): void
     {
         $tableRows = array_map(function (array $row) {
             if (isset($row['error'])) {
-                return [$row['file'], "<fg=red>skipped: {$row['error']}</>", '-', '-', '-', '-'];
+                return $this->colorize([$row['file'], "skipped: {$row['error']}", '-', '-', '-', '-'], 'red');
             }
 
             $size = data_get($row, 'size');
             $savedPercent = data_get($row, 'saved_percent');
 
-            return [
+            return $this->colorize([
                 $row['file'],
                 strtoupper((string) $row['source_format']).', '.$this->humanSize((int) $row['source_size']),
                 is_string(data_get($row, 'format')) ? strtoupper((string) data_get($row, 'format')) : '?',
                 is_int($size) ? '~'.$this->humanSize($size) : '?',
                 $this->formatSaved(data_get($row, 'saved')),
                 is_numeric($savedPercent) ? $savedPercent.'%' : '?',
-            ];
+            ], $this->rowColor($row));
         }, $rows);
 
         $totals = $this->totals($rows);

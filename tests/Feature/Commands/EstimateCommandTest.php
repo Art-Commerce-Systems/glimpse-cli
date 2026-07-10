@@ -234,9 +234,9 @@ test('prints a batch json object with files and totals', function () {
 
     expect($exitCode)->toBe(0)
         ->and($decoded['files'])->toHaveCount(2)
-        ->and($decoded['files'][0]['error'])->toBe('Unrecognized image format.')
-        ->and($decoded['files'][1]['file'])->toBe('good.png')
-        ->and($decoded['files'][1]['format'])->toBe('avif')
+        ->and($decoded['files'][0]['file'])->toBe('good.png')
+        ->and($decoded['files'][0]['format'])->toBe('avif')
+        ->and($decoded['files'][1]['error'])->toBe('Unrecognized image format.')
         ->and($decoded['totals']['files'])->toBe(2)
         ->and($decoded['totals']['failed'])->toBe(1)
         ->and($decoded['totals']['source_size'])->toBe(70);
