@@ -2,9 +2,10 @@
 
 namespace App\Commands\Concerns;
 
-use App\Glimpse\ApiException;
-use App\Glimpse\ValidationException;
 use Closure;
+use GlimpseImg\ApiException;
+use GlimpseImg\AuthException;
+use GlimpseImg\ValidationException;
 use Illuminate\Http\Client\ConnectionException;
 
 trait GuardsApiErrors
@@ -28,6 +29,10 @@ trait GuardsApiErrors
             return self::FAILURE;
         } catch (ConnectionException $e) {
             $this->error('Could not reach the Glimpse API: '.$e->getMessage());
+
+            return self::FAILURE;
+        } catch (AuthException $e) {
+            $this->error($e->getMessage().' Run: glimpse auth');
 
             return self::FAILURE;
         } catch (ApiException $e) {

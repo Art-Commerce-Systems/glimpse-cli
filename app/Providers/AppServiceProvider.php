@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
-use App\Glimpse\Client;
 use App\Glimpse\Config;
+use GlimpseImg\Client;
+use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,6 +24,15 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(Config::class);
-        $this->app->singleton(Client::class);
+
+        // The Http facade resolves Factory::class, so binding it as a
+        // singleton lets Http::fake() intercept the SDK client's requests.
+        $this->app->singleton(Factory::class);
+
+        $this->app->singleton(Client::class, function (Application $app) {
+            $config = $app->make(Config::class);
+
+            return new Client($app->make(Factory::class), fn (): ?string => $config->token(), $config->apiUrl());
+        });
     }
 }

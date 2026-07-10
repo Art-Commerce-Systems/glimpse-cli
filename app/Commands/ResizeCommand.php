@@ -2,8 +2,8 @@
 
 namespace App\Commands;
 
-use App\Glimpse\ApiException;
-use App\Glimpse\Client;
+use GlimpseImg\ApiException;
+use GlimpseImg\Client;
 
 class ResizeCommand extends GlimpseCommand
 {

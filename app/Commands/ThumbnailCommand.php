@@ -2,7 +2,7 @@
 
 namespace App\Commands;
 
-use App\Glimpse\Client;
+use GlimpseImg\Client;
 
 class ThumbnailCommand extends GlimpseCommand
 {

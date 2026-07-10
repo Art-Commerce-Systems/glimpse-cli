@@ -2,8 +2,8 @@
 
 namespace App\Support;
 
-use App\Enums\ImageFormat;
 use FilesystemIterator;
+use GlimpseImg\ImageFormat;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

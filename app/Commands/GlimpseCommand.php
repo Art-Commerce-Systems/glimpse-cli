@@ -3,8 +3,8 @@
 namespace App\Commands;
 
 use App\Commands\Concerns\GuardsApiErrors;
-use App\Glimpse\ApiException;
-use App\Glimpse\ImageResult;
+use GlimpseImg\ApiException;
+use GlimpseImg\ImageResult;
 use LaravelZero\Framework\Commands\Command;
 
 abstract class GlimpseCommand extends Command

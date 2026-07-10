@@ -2,9 +2,9 @@
 
 namespace App\Commands;
 
-use App\Enums\ImageFormat;
-use App\Glimpse\ApiException;
-use App\Glimpse\Client;
+use GlimpseImg\ApiException;
+use GlimpseImg\Client;
+use GlimpseImg\ImageFormat;
 
 class ConvertCommand extends GlimpseCommand
 {

@@ -2,12 +2,12 @@
 
 namespace App\Commands\Concerns;
 
-use App\Enums\ImageFormat;
-use App\Glimpse\ApiException;
-use App\Glimpse\AuthException;
-use App\Glimpse\Client;
-use App\Glimpse\FrameCounter;
-use App\Glimpse\SampleProbe;
+use GlimpseImg\ApiException;
+use GlimpseImg\AuthException;
+use GlimpseImg\Client;
+use GlimpseImg\FrameCounter;
+use GlimpseImg\ImageFormat;
+use GlimpseImg\SampleProbe;
 
 trait AnalyzesImages
 {

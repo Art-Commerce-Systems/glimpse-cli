@@ -3,11 +3,11 @@
 namespace App\Commands;
 
 use App\Commands\Concerns\AnalyzesImages;
-use App\Enums\ImageFormat;
-use App\Glimpse\ApiException;
-use App\Glimpse\Client;
-use App\Glimpse\SampleProbe;
 use App\Support\ImageFinder;
+use GlimpseImg\ApiException;
+use GlimpseImg\Client;
+use GlimpseImg\ImageFormat;
+use GlimpseImg\SampleProbe;
 use Symfony\Component\Console\Helper\TableSeparator;
 
 class AnalyzeCommand extends GlimpseCommand
