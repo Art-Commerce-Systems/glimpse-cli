@@ -65,8 +65,8 @@ test('classifies rows green, yellow, and red', function () {
         ->and($output)->toContain("\e[31mcorrupt.png");
 });
 
-test('repeats the header every 20 rows on long listings', function () {
-    foreach (range(1, 21) as $i) {
+test('repeats the header every 24 rows on long listings', function () {
+    foreach (range(1, 25) as $i) {
         createSizedImage(sprintf('photo-%02d.png', $i), 1000);
     }
 

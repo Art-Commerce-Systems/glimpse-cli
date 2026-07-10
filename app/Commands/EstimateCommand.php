@@ -23,9 +23,10 @@ class EstimateCommand extends GlimpseCommand
 
     /**
      * How many summary rows to print between repeated header rows, so
-     * the columns stay identifiable on long listings.
+     * the columns stay identifiable on long listings. One classic
+     * 24-row terminal screenful.
      */
-    private const HEADER_EVERY = 20;
+    private const HEADER_EVERY = 24;
 
     public function handle(Client $client, SampleProbe $probe): int
     {
