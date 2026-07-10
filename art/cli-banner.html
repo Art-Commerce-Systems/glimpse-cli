@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<!--
+  Source for art/cli-banner.avif: the banner that a bare `glimpse` prints,
+  exactly as the production PHAR renders it (command list included).
+
+    chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
+      --window-size=1240,980 --screenshot=cli-banner.png cli-banner.html
+    glimpse convert cli-banner.png --format=avif --optimize -o cli-banner.avif
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>glimpse cli banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #0d1017;
+    --surface-2: #10131b;
+    --border: #1d2230;
+    --border-strong: #2a3142;
+    --text: #e6e6e3;
+    --muted: #9aa0ad;
+    --faint: #6b7280;
+    --accent: #6088d5;
+    --green: #5be37d;
+    --yellow: #e8c468;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1240px; height: 980px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(#2a3142 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: .3;
+    -webkit-mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
+  }
+  .glow {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 940px; height: 760px;
+    background: radial-gradient(closest-side, rgba(96,136,213,.10), transparent 70%);
+  }
+
+  .term {
+    position: relative;
+    width: 1060px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(96,136,213,.08), 0 24px 60px -20px rgba(0,0,0,.8);
+  }
+  .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .bar .d { width: 11px; height: 11px; }
+  .bar .d.r { background: #e8695c; }
+  .bar .d.y { background: #e8c468; }
+  .bar .d.g { background: #5be37d; }
+  .bar .label { margin-left: 12px; color: var(--faint); font-size: 13px; }
+
+  pre {
+    padding: 26px 30px 30px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .p   { color: var(--green); font-weight: 700; }
+  /* block-glyph art must render like terminal cells: no leading between rows */
+  .art { display: block; line-height: 1.0; }
+  .b   { font-weight: 700; }
+  .g   { color: var(--green); }
+  .gb  { color: var(--green); font-weight: 700; }
+  .a   { color: var(--accent); }
+  .mut { color: var(--muted); }
+  .y   { color: var(--yellow); font-weight: 700; }
+  .cur {
+    display: inline-block;
+    width: 9px; height: 18px;
+    background: var(--muted);
+    vertical-align: -3px;
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+
+  <div class="term">
+    <div class="bar">
+      <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+      <span class="label">bash - glimpse</span>
+    </div>
+    <pre><span class="p">$</span> glimpse
+
+<span class="art">         ▄▄▄▄▄▄▄▄▄▄▄▄▄▄            ██████  ██      ██ ███    ███ ██████  ███████ ███████
+   ▄▄▄██▀▀▀██▀▀  ▀▀██▀▀▀██▄▄▄     ██       ██      ██ ████  ████ ██   ██ ██      ██
+ ████      ██  <span class="g">██</span>  ██      ████   ██   ███ ██      ██ ██ ████ ██ ██████  ███████ █████    <span class="g">▄▄</span>
+   ▀▀▀██▄▄▄██▄▄  ▄▄██▄▄▄██▀▀▀     ██    ██ ██      ██ ██  ██  ██ ██           ██ ██       <span class="g">██</span>
+         ▀▀▀▀▀▀▀▀▀▀▀▀▀▀            ██████  ███████ ██ ██      ██ ██      ███████ ███████  <span class="g">██</span></span>
+
+  <span class="mut">The image API for</span> <span class="a">developers</span><span class="mut">.</span>                                                       <span class="gb">v0.7.0</span>
+  <span class="mut">by Mathias Grimm · https://mathiasgrimm.com</span>
+
+  <span class="y">USAGE:</span>  &lt;command&gt; [options] [arguments]
+
+  <span class="g">auth</span>        Authenticate with the Glimpse API and store the token
+  <span class="g">convert</span>     Convert an image to another format
+  <span class="g">estimate</span>    Estimate converted sizes for every format without uploading the image
+  <span class="g">info</span>        Inspect an image and print its metadata
+  <span class="g">optimize</span>    Optimize an image, keeping its format
+  <span class="g">resize</span>      Resize an image into a bounding box, keeping its format and aspect ratio
+  <span class="g">self-update</span> Self-update the installed application
+  <span class="g">thumbnail</span>   Create an optimized thumbnail of an image
+
+  <span class="g">auth:logout</span> Remove the stored API token
+  <span class="g">auth:status</span> Show the current authentication status
+
+<span class="p">$</span> <span class="cur"></span></pre>
+  </div>
+</body>
+</html>
