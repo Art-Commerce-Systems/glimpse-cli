@@ -8,11 +8,11 @@
 </p>
 
 <p align="center">
-  <a href="https://packagist.org/packages/glimpseimg/cli"><img src="https://img.shields.io/packagist/v/glimpseimg/cli?style=flat-square&label=packagist" alt="Latest Version on Packagist"></a>
+  <a href="https://packagist.org/packages/mathiasgrimm/glimpse-cli"><img src="https://img.shields.io/packagist/v/mathiasgrimm/glimpse-cli?style=flat-square&label=packagist" alt="Latest Version on Packagist"></a>
   <a href="https://github.com/mathiasgrimm/glimpse-cli/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/mathiasgrimm/glimpse-cli/ci.yml?branch=main&label=tests&style=flat-square" alt="Tests"></a>
-  <a href="https://packagist.org/packages/glimpseimg/cli"><img src="https://img.shields.io/packagist/dt/glimpseimg/cli?style=flat-square" alt="Total Downloads"></a>
-  <a href="https://packagist.org/packages/glimpseimg/cli"><img src="https://img.shields.io/packagist/dependency-v/glimpseimg/cli/php?style=flat-square&label=php" alt="PHP Version"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/packagist/l/glimpseimg/cli?style=flat-square" alt="License"></a>
+  <a href="https://packagist.org/packages/mathiasgrimm/glimpse-cli"><img src="https://img.shields.io/packagist/dt/mathiasgrimm/glimpse-cli?style=flat-square" alt="Total Downloads"></a>
+  <a href="https://packagist.org/packages/mathiasgrimm/glimpse-cli"><img src="https://img.shields.io/packagist/dependency-v/mathiasgrimm/glimpse-cli/php?style=flat-square&label=php" alt="PHP Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/packagist/l/mathiasgrimm/glimpse-cli?style=flat-square" alt="License"></a>
 </p>
 
 ---
@@ -20,16 +20,16 @@
 Shipping images means wrangling ImageMagick, libvips, mozjpeg, cwebp and avifenc: compiled binaries that differ between your laptop, your teammate's laptop, and CI. **glimpse replaces all of them with one command.** The heavy lifting happens on the [Glimpse API](https://glimpseimg.com): stateless, nothing stored, your bytes never linger. You install a single CLI and go:
 
 ```bash
-composer global require glimpseimg/cli
+composer global require mathiasgrimm/glimpse-cli
 glimpse auth
 glimpse convert banner.png --format=avif
 ```
 
 ```
-Wrote banner.avif (image/avif, 23.8 KB, 3200x840)
+Wrote banner.avif (image/avif, 23.1 KB, 3200x840)
 ```
 
-That's a real session: `banner.png` is a frame of the banner at the top of this page, re-encoded from 429.7 KB down to 23.8 KB. The banner you are actually looking at goes one step further; it is a two-frame animated AVIF (watch the green dot blink) that glimpse converted from a GIF, 42.8 KB in total. Want to know what a conversion will buy you *before* you convert? `glimpse estimate` predicts the output size for every format **without uploading your image**:
+That's a real session: `banner.png` is a frame of the banner at the top of this page, re-encoded from 348.3 KB down to 23.1 KB. The banner you are actually looking at goes one step further; it is a two-frame animated AVIF (watch the green dot blink) that glimpse converted from a GIF, 40.1 KB in total. Want to know what a conversion will buy you *before* you convert? `glimpse estimate` predicts the output size for every format **without uploading your image**:
 
 <p align="center">
   <img src="art/terminal.avif" alt="glimpse estimate and convert running in a terminal" width="100%">
@@ -51,7 +51,7 @@ That's a real session: `banner.png` is a frame of the banner at the top of this 
 ### Composer
 
 ```bash
-composer global require glimpseimg/cli
+composer global require mathiasgrimm/glimpse-cli
 ```
 
 Make sure Composer's global bin directory (`composer global config bin-dir --absolute`) is on your `PATH`, then run `glimpse`.
@@ -163,15 +163,15 @@ glimpse estimate banner.png
 ```
 
 ```
-Source: PNG, 429.7 KB, 3200x840, sampled
+Source: PNG, 348.3 KB, 3200x840, sampled
 
 +--------+----------------+----------+---------+---------+
 | Format | Estimated size | Saved    | Saved % | Quality |
 +--------+----------------+----------+---------+---------+
-| JPG    | ~132.4 KB      | 297.4 KB | 69.2%   | 85      |
-| PNG    | ~193.4 KB      | 236.4 KB | 55%     | -       |
-| WEBP   | ~73.5 KB       | 356.2 KB | 82.9%   | 85      |
-| AVIF   | ~36.8 KB       | 393 KB   | 91.4%   | 85      |
+| JPG    | ~135.3 KB      | 213 KB   | 61.2%   | 85      |
+| PNG    | ~156.7 KB      | 191.6 KB | 55%     | -       |
+| WEBP   | ~75.1 KB       | 273.2 KB | 78.4%   | 85      |
+| AVIF   | ~37.6 KB       | 310.7 KB | 89.2%   | 85      |
 +--------+----------------+----------+---------+---------+
 Estimates are heuristics for picking a target format, not guarantees.
 ```
