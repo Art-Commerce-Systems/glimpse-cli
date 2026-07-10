@@ -2,7 +2,7 @@
 
 namespace App\Commands;
 
-use App\Commands\Concerns\EstimatesImages;
+use App\Commands\Concerns\AnalyzesImages;
 use App\Enums\ImageFormat;
 use App\Glimpse\ApiException;
 use App\Glimpse\Client;
@@ -10,18 +10,18 @@ use App\Glimpse\SampleProbe;
 use App\Support\ImageFinder;
 use Symfony\Component\Console\Helper\TableSeparator;
 
-class EstimateCommand extends GlimpseCommand
+class AnalyzeCommand extends GlimpseCommand
 {
-    use EstimatesImages;
+    use AnalyzesImages;
 
-    protected $signature = 'estimate
+    protected $signature = 'analyze
         {input : Path to an image or a directory to scan recursively, or - for stdin}
         {--format= : Only show estimates for this target format (jpg, png, webp, gif, avif)}
         {--optimize : Assume the optimizer chain runs on the re-encode}
         {--quality= : Assumed re-encode quality 1-100, perceptual scale; requires --optimize (defaults to 85)}
         {--json : Print the estimates as JSON}';
 
-    protected $description = 'Estimate converted sizes without uploading the image';
+    protected $description = 'Analyze converted sizes without uploading the image';
 
     /**
      * How many summary rows to print between repeated header rows, so
@@ -56,7 +56,7 @@ class EstimateCommand extends GlimpseCommand
 
         [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-        $estimates = $client->estimate($format, strlen($bytes), $width, $height, $quality, $sampleBpp);
+        $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp);
 
         if ($target !== null) {
             $estimates = [$this->pick($estimates, $target)
@@ -88,7 +88,7 @@ class EstimateCommand extends GlimpseCommand
         $rows = [];
 
         foreach ($files as $path) {
-            $rows[] = $this->estimateFile($client, $probe, $dir, $path, $target, $quality);
+            $rows[] = $this->analyzeFile($client, $probe, $dir, $path, $target, $quality);
             $bar?->advance();
         }
 

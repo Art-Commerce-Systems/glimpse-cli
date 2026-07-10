@@ -8,16 +8,16 @@ use App\Glimpse\AuthException;
 use App\Glimpse\Client;
 use App\Glimpse\SampleProbe;
 
-trait EstimatesImages
+trait AnalyzesImages
 {
     /**
-     * Estimate a single file inside a batch. Failures are recorded, not
+     * Analyze a single file inside a batch. Failures are recorded, not
      * thrown, so one bad file does not abort the scan. Auth failures do
      * abort: they would fail every remaining file the same way.
      *
      * @return array<string, mixed>
      */
-    private function estimateFile(Client $client, SampleProbe $probe, string $dir, string $path, ?ImageFormat $target, ?int $quality): array
+    private function analyzeFile(Client $client, SampleProbe $probe, string $dir, string $path, ?ImageFormat $target, ?int $quality): array
     {
         $file = ltrim(substr($path, strlen(rtrim($dir, '/'))), '/');
 
@@ -29,7 +29,7 @@ trait EstimatesImages
 
             [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-            $estimates = $client->estimate($format, strlen($bytes), $width, $height, $quality, $sampleBpp);
+            $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp);
 
             $pick = $this->pick($estimates, $target) ?? throw new ApiException(
                 $target === null ? 'No estimates returned.' : 'No estimate for '.strtoupper($target->value).'.',

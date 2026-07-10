@@ -116,17 +116,17 @@ test('a missing token fails before any HTTP request', function () {
     Http::assertNothingSent();
 });
 
-test('estimate posts metadata only, with no image payload', function () {
-    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+test('analyze posts metadata only, with no image payload', function () {
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
 
-    $estimates = app(Client::class)->estimate(ImageFormat::Jpg, 2_500_000, 4032, 3024, 80);
+    $estimates = app(Client::class)->analyze(ImageFormat::Jpg, 2_500_000, 4032, 3024, 80);
 
     expect($estimates)->toHaveCount(4)
         ->and($estimates[0]['format'])->toBe('jpg')
         ->and($estimates[3]['format'])->toBe('avif');
 
     Http::assertSent(function (Request $request) {
-        return $request->url() === 'https://glimpseimg.com/api/v1/estimate'
+        return $request->url() === 'https://glimpseimg.com/api/v1/analyze'
             && $request->hasHeader('Authorization', 'Bearer test-token')
             && ! array_key_exists('input', $request->data())
             && $request['format'] === ImageFormat::Jpg->value
@@ -137,10 +137,10 @@ test('estimate posts metadata only, with no image payload', function () {
     });
 });
 
-test('estimate omits dimensions, quality, and sample from the payload when null', function () {
-    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+test('analyze omits dimensions, quality, and sample from the payload when null', function () {
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
 
-    app(Client::class)->estimate(ImageFormat::Png, 1_000_000);
+    app(Client::class)->analyze(ImageFormat::Png, 1_000_000);
 
     Http::assertSent(fn (Request $request) => ! array_key_exists('width', $request->data())
         && ! array_key_exists('height', $request->data())
@@ -148,10 +148,10 @@ test('estimate omits dimensions, quality, and sample from the payload when null'
         && ! array_key_exists('sample_bpp', $request->data()));
 });
 
-test('estimate sends the sample bpp when given', function () {
-    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+test('analyze sends the sample bpp when given', function () {
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
 
-    app(Client::class)->estimate(ImageFormat::Jpg, 2_500_000, 4032, 3024, sampleBpp: 0.7066);
+    app(Client::class)->analyze(ImageFormat::Jpg, 2_500_000, 4032, 3024, sampleBpp: 0.7066);
 
     Http::assertSent(fn (Request $request) => $request['sample_bpp'] === 0.7066);
 });

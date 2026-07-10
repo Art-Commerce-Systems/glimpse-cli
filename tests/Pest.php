@@ -50,11 +50,11 @@ function createImage(string $name = 'photo.png', ?string $contents = null): stri
 }
 
 /**
- * A canned successful estimate-endpoint response envelope.
+ * A canned successful analyze-endpoint response envelope.
  *
  * @return array{data: list<array<string, mixed>>}
  */
-function fakeEstimateResponse(): array
+function fakeAnalyzeResponse(): array
 {
     return ['data' => [
         ['format' => 'jpg', 'size' => 812000, 'saved' => 1688000, 'saved_percent' => 67.5, 'quality' => 85],

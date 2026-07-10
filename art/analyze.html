@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <!--
-  Source for art/estimate.avif. The session shown is real output of the
-  estimate command run against a folder of generated sample assets: the
+  Source for art/analyze.avif. The session shown is real output of the
+  analyze command run against a folder of generated sample assets: the
   numbers, ordering, and color classes all came back from the API.
 
     chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
-      --window-size=1200,760 --screenshot=estimate.png estimate.html
-    glimpse convert estimate.png --format=avif --optimize -o estimate.avif
+      --window-size=1200,760 --screenshot=analyze.png analyze.html
+    glimpse convert analyze.png --format=avif --optimize -o analyze.avif
 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>glimpse estimate directory</title>
+<title>glimpse analyze directory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -105,7 +105,7 @@
       <span class="d r"></span><span class="d y"></span><span class="d g"></span>
       <span class="label">bash - glimpse</span>
     </div>
-    <pre><span class="p">$</span> glimpse estimate assets/ <span class="o">--format=avif</span>
+    <pre><span class="p">$</span> glimpse analyze assets/ <span class="o">--format=avif</span>
 
 <span class="dim">+-------------------------+----------------+--------+-----------+----------+---------+</span>
 <span class="dim">|</span> <span class="mut">File</span>                    <span class="dim">|</span> <span class="mut">Source</span>         <span class="dim">|</span> <span class="mut">Format</span> <span class="dim">|</span> <span class="mut">Estimated</span> <span class="dim">|</span> <span class="mut">Saved</span>    <span class="dim">|</span> <span class="mut">Saved %</span> <span class="dim">|</span>

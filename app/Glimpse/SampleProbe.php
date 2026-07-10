@@ -6,7 +6,7 @@ use Imagick;
 use ImagickException;
 
 /**
- * Measures an image's content complexity for the estimate endpoint by
+ * Measures an image's content complexity for the analyze endpoint by
  * performing a real JPEG trial encode locally, matching the API's probe
  * spec: downscale to at most 4096 px on the longest side (memory guard;
  * a mild downscale barely disturbs the signal), encode JPEG at quality

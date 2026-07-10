@@ -7,7 +7,7 @@ use Symfony\Component\Console\Output\BufferedOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * These tests need a different estimate per file, so the fake keys the
+ * These tests need a different analysis per file, so the fake keys the
  * response on the request's size field. The fixture files are a PNG
  * magic number padded to the wanted byte count; the CLI cannot decode
  * them locally, which is fine, the payload still carries the size.
@@ -15,7 +15,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 beforeEach(function () {
     putenv('GLIMPSE_TOKEN=test-token');
 
-    Http::fake(['*/v1/estimate' => function (Request $request) {
+    Http::fake(['*/v1/analyze' => function (Request $request) {
         $estimates = [
             5000 => ['size' => 1000, 'saved' => 4000, 'saved_percent' => 80.0],
             1000 => ['size' => 900, 'saved' => 100, 'saved_percent' => 10.0],
@@ -39,7 +39,7 @@ test('sorts the summary by bytes saved with failed files last', function () {
     createSizedImage('z-big-saver.png', 5000);
     createImage('b-corrupt.png', 'not an image');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -55,7 +55,7 @@ test('classifies rows green, yellow, and red', function () {
     createImage('corrupt.png', 'not an image');
 
     $buffer = new BufferedOutput(OutputInterface::VERBOSITY_NORMAL, decorated: true);
-    $exitCode = Artisan::call('estimate', ['input' => workspace()], $buffer);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()], $buffer);
     $output = $buffer->fetch();
 
     expect($exitCode)->toBe(0)
@@ -70,7 +70,7 @@ test('repeats the header every 24 rows on long listings', function () {
         createSizedImage(sprintf('photo-%02d.png', $i), 1000);
     }
 
-    Artisan::call('estimate', ['input' => workspace()]);
+    Artisan::call('analyze', ['input' => workspace()]);
 
     expect(substr_count(Artisan::output(), 'Estimated'))->toBe(2);
 });
@@ -78,7 +78,7 @@ test('repeats the header every 24 rows on long listings', function () {
 test('does not repeat the header on short listings', function () {
     createSizedImage('photo.png', 1000);
 
-    Artisan::call('estimate', ['input' => workspace()]);
+    Artisan::call('analyze', ['input' => workspace()]);
 
     expect(substr_count(Artisan::output(), 'Estimated'))->toBe(1);
 });
@@ -87,7 +87,7 @@ test('sorts the batch json by bytes saved as well', function () {
     createSizedImage('a-grower.png', 300);
     createSizedImage('z-big-saver.png', 5000);
 
-    Artisan::call('estimate', ['input' => workspace(), '--json' => true]);
+    Artisan::call('analyze', ['input' => workspace(), '--json' => true]);
     $decoded = json_decode(Artisan::output(), true);
 
     expect($decoded['files'][0]['file'])->toBe('z-big-saver.png')

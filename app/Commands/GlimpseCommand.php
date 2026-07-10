@@ -22,7 +22,7 @@ abstract class GlimpseCommand extends Command
 
     /**
      * Read the input image bytes. The size limit mirrors the API's upload
-     * cap; commands that never upload the bytes (estimate) disable it.
+     * cap; commands that never upload the bytes (analyze) disable it.
      */
     protected function readImage(string $path, bool $limitBytes = true): string
     {

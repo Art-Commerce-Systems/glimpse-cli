@@ -49,15 +49,15 @@ final class Client
     }
 
     /**
-     * Estimate converted output sizes from metadata alone; no image bytes
+     * Predict converted output sizes from metadata alone; no image bytes
      * are sent. The optional sample bits per pixel (a local JPEG trial
      * encode, see SampleProbe) makes the lossy estimates far tighter.
      *
      * @return list<array<string, mixed>>
      */
-    public function estimate(ImageFormat $format, int $size, ?int $width = null, ?int $height = null, ?int $quality = null, ?float $sampleBpp = null): array
+    public function analyze(ImageFormat $format, int $size, ?int $width = null, ?int $height = null, ?int $quality = null, ?float $sampleBpp = null): array
     {
-        $estimates = $this->post('/v1/estimate', [
+        $estimates = $this->post('/v1/analyze', [
             'format' => $format->value,
             'size' => $size,
             'width' => $width,

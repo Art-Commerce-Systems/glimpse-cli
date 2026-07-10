@@ -8,22 +8,22 @@ beforeEach(function () {
 });
 
 /**
- * Fake the estimate endpoint. The default canned response saves 81.2%
+ * Fake the analyze endpoint. The default canned response saves 81.2%
  * at best; tests exercising the passing path fake a response whose
  * best saving stays under the threshold instead. One fake per test:
  * stacked Http::fake() stubs resolve in registration order, so a
  * beforeEach default could not be overridden.
  */
-function fakeEstimate(?float $bestPercent = null): void
+function fakeAnalyze(?float $bestPercent = null): void
 {
-    Http::fake(['*/v1/estimate' => Http::response($bestPercent === null ? fakeEstimateResponse() : ['data' => [
+    Http::fake(['*/v1/analyze' => Http::response($bestPercent === null ? fakeAnalyzeResponse() : ['data' => [
         ['format' => 'webp', 'size' => 68, 'saved' => 2, 'saved_percent' => $bestPercent, 'quality' => 85],
         ['format' => 'png', 'size' => 71, 'saved' => -1, 'saved_percent' => -1.4, 'quality' => null],
     ]])]);
 }
 
 test('lists images over the threshold and exits 1', function () {
-    fakeEstimate();
+    fakeAnalyze();
     createImage('photo.png');
     createImage('nested/big.png');
 
@@ -41,7 +41,7 @@ test('lists images over the threshold and exits 1', function () {
 });
 
 test('passes when every image is within the threshold', function () {
-    fakeEstimate(bestPercent: 3.2);
+    fakeAnalyze(bestPercent: 3.2);
 
     createImage('photo.png');
 
@@ -54,7 +54,7 @@ test('passes when every image is within the threshold', function () {
 });
 
 test('flags a saving exactly at the threshold', function () {
-    fakeEstimate(bestPercent: 10.0);
+    fakeAnalyze(bestPercent: 10.0);
 
     createImage('photo.png');
 
@@ -62,7 +62,7 @@ test('flags a saving exactly at the threshold', function () {
 });
 
 test('respects a custom --threshold', function () {
-    fakeEstimate();
+    fakeAnalyze();
     createImage('photo.png');
 
     expect(Artisan::call('check', ['input' => workspace(), '--threshold' => 90]))->toBe(0)
@@ -70,7 +70,7 @@ test('respects a custom --threshold', function () {
 });
 
 test('rejects invalid thresholds before calling the api', function (string $threshold) {
-    fakeEstimate();
+    fakeAnalyze();
     createImage('photo.png');
 
     $this->artisan('check', ['input' => workspace(), '--threshold' => $threshold])
@@ -81,7 +81,7 @@ test('rejects invalid thresholds before calling the api', function (string $thre
 })->with(['abc', '-5', '150']);
 
 test('checks a single file by its basename', function () {
-    fakeEstimate();
+    fakeAnalyze();
     $path = createImage('photo.png');
 
     $exitCode = Artisan::call('check', ['input' => $path]);
@@ -93,7 +93,7 @@ test('checks a single file by its basename', function () {
 });
 
 test('fails cleanly when the path does not exist', function () {
-    fakeEstimate();
+    fakeAnalyze();
     $this->artisan('check', ['input' => '/nope/missing.jpg'])
         ->expectsOutputToContain('File not found: /nope/missing.jpg')
         ->assertExitCode(1);
@@ -102,7 +102,7 @@ test('fails cleanly when the path does not exist', function () {
 });
 
 test('emits a json report when failing', function () {
-    fakeEstimate();
+    fakeAnalyze();
     createImage('photo.png');
 
     $exitCode = Artisan::call('check', ['input' => workspace(), '--json' => true]);
@@ -119,7 +119,7 @@ test('emits a json report when failing', function () {
 });
 
 test('emits a json report when passing', function () {
-    fakeEstimate(bestPercent: 3.2);
+    fakeAnalyze(bestPercent: 3.2);
 
     createImage('photo.png');
 
@@ -133,7 +133,7 @@ test('emits a json report when passing', function () {
 });
 
 test('fails when a file cannot be checked', function () {
-    fakeEstimate(bestPercent: 3.2);
+    fakeAnalyze(bestPercent: 3.2);
 
     createImage('good.png');
     createImage('bad.png', 'not an image');
@@ -148,7 +148,7 @@ test('fails when a file cannot be checked', function () {
 });
 
 test('passes when the directory contains no images', function () {
-    fakeEstimate();
+    fakeAnalyze();
     mkdir(workspace(), 0755, true);
 
     $exitCode = Artisan::call('check', ['input' => workspace()]);
@@ -160,7 +160,7 @@ test('passes when the directory contains no images', function () {
 });
 
 test('passes when .glimpseignore excludes every offender', function () {
-    fakeEstimate();
+    fakeAnalyze();
     createImage('photo.png');
     file_put_contents(workspace().'/.glimpseignore', "*.png\n");
 
@@ -173,7 +173,7 @@ test('passes when .glimpseignore excludes every offender', function () {
 });
 
 test('fails with an auth error when no token is configured', function () {
-    fakeEstimate();
+    fakeAnalyze();
     putenv('GLIMPSE_TOKEN');
 
     createImage('photo.png');

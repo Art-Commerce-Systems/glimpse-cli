@@ -7,15 +7,15 @@ use Illuminate\Support\Facades\Http;
 beforeEach(function () {
     putenv('GLIMPSE_TOKEN=test-token');
 
-    Http::fake(['*/v1/estimate' => Http::response(fakeEstimateResponse())]);
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
 });
 
 test('derives the payload from the local file and uploads no bytes', function () {
-    $this->artisan('estimate', ['input' => createImage()])
+    $this->artisan('analyze', ['input' => createImage()])
         ->assertExitCode(0);
 
     Http::assertSent(function (Request $request) {
-        return $request->url() === 'https://glimpseimg.com/api/v1/estimate'
+        return $request->url() === 'https://glimpseimg.com/api/v1/analyze'
             && ! array_key_exists('input', $request->data())
             && $request['format'] === 'png'
             && $request['size'] === 70
@@ -28,14 +28,14 @@ test('derives the payload from the local file and uploads no bytes', function ()
 });
 
 test('mentions the sample in the source line', function () {
-    $exitCode = Artisan::call('estimate', ['input' => createImage()]);
+    $exitCode = Artisan::call('analyze', ['input' => createImage()]);
 
     expect($exitCode)->toBe(0)
         ->and(Artisan::output())->toContain(', sampled');
 });
 
 test('prints a table with one row per format', function () {
-    $exitCode = Artisan::call('estimate', ['input' => createImage()]);
+    $exitCode = Artisan::call('analyze', ['input' => createImage()]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -48,8 +48,8 @@ test('prints a table with one row per format', function () {
         ->and($output)->toContain('-3.4 MB');
 });
 
-test('prints the raw estimates with --json', function () {
-    $exitCode = Artisan::call('estimate', ['input' => createImage(), '--json' => true]);
+test('prints the raw analysis with --json', function () {
+    $exitCode = Artisan::call('analyze', ['input' => createImage(), '--json' => true]);
     $decoded = json_decode(Artisan::output(), true);
 
     expect($exitCode)->toBe(0)
@@ -59,14 +59,14 @@ test('prints the raw estimates with --json', function () {
 });
 
 test('passes an explicit quality through to the api', function () {
-    $this->artisan('estimate', ['input' => createImage(), '--quality' => 60, '--optimize' => true])
+    $this->artisan('analyze', ['input' => createImage(), '--quality' => 60, '--optimize' => true])
         ->assertExitCode(0);
 
     Http::assertSent(fn (Request $request) => $request['quality'] === 60);
 });
 
 test('requires --optimize when --quality is set', function () {
-    $this->artisan('estimate', ['input' => createImage(), '--quality' => 60])
+    $this->artisan('analyze', ['input' => createImage(), '--quality' => 60])
         ->expectsOutputToContain('--quality requires --optimize.')
         ->assertExitCode(1);
 
@@ -77,7 +77,7 @@ test('omits dimensions when php cannot parse the format locally', function () {
     $path = createImage('photo.avif');
     file_put_contents($path, "\x00\x00\x00\x20ftypavifavifmif1miaf".str_repeat("\x00", 40));
 
-    $this->artisan('estimate', ['input' => $path])
+    $this->artisan('analyze', ['input' => $path])
         ->assertExitCode(0);
 
     Http::assertSent(fn (Request $request) => $request['format'] === 'avif'
@@ -89,7 +89,7 @@ test('rejects bytes that are not a supported image', function () {
     $path = createImage('fake.png');
     file_put_contents($path, 'not an image at all');
 
-    $this->artisan('estimate', ['input' => $path])
+    $this->artisan('analyze', ['input' => $path])
         ->expectsOutputToContain('Unrecognized image format')
         ->assertExitCode(1);
 
@@ -97,7 +97,7 @@ test('rejects bytes that are not a supported image', function () {
 });
 
 test('fails cleanly when the file does not exist', function () {
-    $this->artisan('estimate', ['input' => '/nope/missing.jpg'])
+    $this->artisan('analyze', ['input' => '/nope/missing.jpg'])
         ->expectsOutputToContain('File not found')
         ->assertExitCode(1);
 
@@ -105,7 +105,7 @@ test('fails cleanly when the file does not exist', function () {
 });
 
 test('rejects an unsupported --format', function () {
-    $this->artisan('estimate', ['input' => createImage(), '--format' => 'bogus'])
+    $this->artisan('analyze', ['input' => createImage(), '--format' => 'bogus'])
         ->expectsOutputToContain('Unsupported format: bogus')
         ->assertExitCode(1);
 
@@ -113,7 +113,7 @@ test('rejects an unsupported --format', function () {
 });
 
 test('filters the single-file table to the --format target', function () {
-    $exitCode = Artisan::call('estimate', ['input' => createImage(), '--format' => 'webp']);
+    $exitCode = Artisan::call('analyze', ['input' => createImage(), '--format' => 'webp']);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -123,7 +123,7 @@ test('filters the single-file table to the --format target', function () {
 });
 
 test('filters the single-file json to the --format target', function () {
-    $exitCode = Artisan::call('estimate', ['input' => createImage(), '--format' => 'webp', '--json' => true]);
+    $exitCode = Artisan::call('analyze', ['input' => createImage(), '--format' => 'webp', '--json' => true]);
     $decoded = json_decode(Artisan::output(), true);
 
     expect($exitCode)->toBe(0)
@@ -132,7 +132,7 @@ test('filters the single-file json to the --format target', function () {
 });
 
 test('fails when the response lacks the --format target for a single file', function () {
-    $this->artisan('estimate', ['input' => createImage(), '--format' => 'gif'])
+    $this->artisan('analyze', ['input' => createImage(), '--format' => 'gif'])
         ->expectsOutputToContain('No estimate for GIF.')
         ->assertExitCode(1);
 });
@@ -141,7 +141,7 @@ test('scans a directory recursively and prints a row per image plus a totalizer'
     createImage('a.png');
     createImage('nested/deep/b.png');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -156,7 +156,7 @@ test('directory scans respect .glimpseignore', function () {
 
     file_put_contents(workspace().'/.glimpseignore', "ignored/\n");
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -168,7 +168,7 @@ test('directory scans respect .glimpseignore', function () {
 test('shows only the format that saves the most when --format is omitted', function () {
     createImage('a.png');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -177,10 +177,10 @@ test('shows only the format that saves the most when --format is omitted', funct
         ->and($output)->not->toContain('WEBP');
 });
 
-test('filters directory estimates to the --format target', function () {
+test('filters directory results to the --format target', function () {
     createImage('a.png');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace(), '--format' => 'webp']);
+    $exitCode = Artisan::call('analyze', ['input' => workspace(), '--format' => 'webp']);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -191,7 +191,7 @@ test('filters directory estimates to the --format target', function () {
 test('marks files skipped when the response lacks the --format target', function () {
     createImage('a.png');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace(), '--format' => 'gif']);
+    $exitCode = Artisan::call('analyze', ['input' => workspace(), '--format' => 'gif']);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(1)
@@ -202,7 +202,7 @@ test('skips corrupt files and reports them in the totalizer', function () {
     createImage('good.png');
     createImage('bad.png', 'not an image');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()]);
     $output = Artisan::output();
 
     expect($exitCode)->toBe(0)
@@ -213,7 +213,7 @@ test('skips corrupt files and reports them in the totalizer', function () {
 test('fails when every file in the directory fails', function () {
     createImage('bad.png', 'not an image');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace()]);
 
     expect($exitCode)->toBe(1);
 
@@ -223,7 +223,7 @@ test('fails when every file in the directory fails', function () {
 test('requires --optimize when --quality is set on a directory', function () {
     createImage();
 
-    $this->artisan('estimate', ['input' => workspace(), '--quality' => 60])
+    $this->artisan('analyze', ['input' => workspace(), '--quality' => 60])
         ->expectsOutputToContain('--quality requires --optimize.')
         ->assertExitCode(1);
 
@@ -233,7 +233,7 @@ test('requires --optimize when --quality is set on a directory', function () {
 test('fails when the directory contains no images', function () {
     mkdir(workspace(), 0755, true);
 
-    $this->artisan('estimate', ['input' => workspace()])
+    $this->artisan('analyze', ['input' => workspace()])
         ->expectsOutputToContain('No image files found')
         ->assertExitCode(1);
 
@@ -244,7 +244,7 @@ test('prints a batch json object with files and totals', function () {
     createImage('good.png');
     createImage('bad.png', 'not an image');
 
-    $exitCode = Artisan::call('estimate', ['input' => workspace(), '--json' => true]);
+    $exitCode = Artisan::call('analyze', ['input' => workspace(), '--json' => true]);
     $decoded = json_decode(Artisan::output(), true);
 
     expect($exitCode)->toBe(0)

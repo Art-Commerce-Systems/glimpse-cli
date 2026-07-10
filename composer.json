@@ -28,8 +28,8 @@
         "phpstan/phpstan": "^2.2"
     },
     "suggest": {
-        "ext-imagick": "Far tighter size estimates, plus AVIF and CMYK support, for the estimate command",
-        "ext-gd": "Far tighter size estimates for the estimate command when Imagick is unavailable"
+        "ext-imagick": "Far tighter size estimates, plus AVIF and CMYK support, for the analyze command",
+        "ext-gd": "Far tighter size estimates for the analyze command when Imagick is unavailable"
     },
     "autoload": {
         "psr-4": {

@@ -2,7 +2,7 @@
 
 namespace App\Commands;
 
-use App\Commands\Concerns\EstimatesImages;
+use App\Commands\Concerns\AnalyzesImages;
 use App\Glimpse\ApiException;
 use App\Glimpse\Client;
 use App\Glimpse\SampleProbe;
@@ -10,7 +10,7 @@ use App\Support\ImageFinder;
 
 class CheckCommand extends GlimpseCommand
 {
-    use EstimatesImages;
+    use AnalyzesImages;
 
     protected $signature = 'check
         {input : Path to an image or a directory to scan recursively}
@@ -41,7 +41,7 @@ class CheckCommand extends GlimpseCommand
             $rows = [];
 
             foreach ($files as $path) {
-                $rows[] = $this->estimateFile($client, $probe, $dir, $path, target: null, quality: null);
+                $rows[] = $this->analyzeFile($client, $probe, $dir, $path, target: null, quality: null);
                 $bar?->advance();
             }
 
