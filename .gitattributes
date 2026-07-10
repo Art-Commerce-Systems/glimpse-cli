@@ -1,5 +1,7 @@
 * text=auto eol=lf
 /.github export-ignore
+/art/** linguist-documentation
+/art export-ignore
 .scrutinizer.yml export-ignore
 BACKERS.md export-ignore
 CONTRIBUTING.md export-ignore
