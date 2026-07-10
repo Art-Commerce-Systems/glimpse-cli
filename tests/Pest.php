@@ -24,18 +24,27 @@ uses(TestCase::class)
     ->in('Feature', 'Unit');
 
 /**
- * Write a PNG fixture into the test workspace and return its path.
+ * The directory createImage() writes fixtures into.
  */
-function createImage(string $name = 'photo.png'): string
+function workspace(): string
 {
-    $dir = test()->configHome.'/workspace';
+    return test()->configHome.'/workspace';
+}
 
-    if (! is_dir($dir)) {
-        mkdir($dir, 0755, true);
+/**
+ * Write an image fixture into the test workspace and return its path.
+ * Nested names create the intermediate directories; custom contents
+ * allow planting corrupt or non-PNG files.
+ */
+function createImage(string $name = 'photo.png', ?string $contents = null): string
+{
+    $path = workspace().'/'.$name;
+
+    if (! is_dir(dirname($path))) {
+        mkdir(dirname($path), 0755, true);
     }
 
-    $path = $dir.'/'.$name;
-    file_put_contents($path, Images::png());
+    file_put_contents($path, $contents ?? Images::png());
 
     return $path;
 }
