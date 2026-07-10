@@ -40,7 +40,7 @@ That's a real session: `banner.png` is a frame of the banner at the top of this 
 - **Zero image binaries.** No ImageMagick, no libvips, no format-specific encoders to install, pin, or debug across machines. If it runs PHP 8.2, it runs glimpse.
 - **One command per job.** `convert`, `optimize`, `resize`, `thumbnail`, `estimate` and `info` are small, predictable commands that do one thing well.
 - **5 output formats.** JPG, PNG, WebP, GIF and AVIF. Input types are verified from the actual bytes, never a filename.
-- **Estimate before you convert.** `glimpse estimate` predicts per-format savings from metadata and a local sample probe. The image itself is never uploaded.
+- **Estimate before you convert.** `glimpse estimate` predicts per-format savings from metadata and a local sample probe, for a single image or a whole directory tree. The image itself is never uploaded.
 - **Built for pipelines.** Reads stdin, writes stdout, `--json` on every command, and human summaries go to STDERR so your pipes stay clean.
 - **Safe by default.** Never overwrites an existing file without `--force`; the optimizer never returns a file larger than its input.
 - **Stateless by design.** One request in, one image out. Nothing is stored server-side.
@@ -177,9 +177,22 @@ Estimates are heuristics for picking a target format, not guarantees.
 ```
 
 ```bash
-glimpse estimate banner.png --quality=70         # assume a lossier re-encode
-glimpse estimate banner.png --json               # machine-readable estimates
+glimpse estimate banner.png --optimize --quality=70   # assume a lossier re-encode
+glimpse estimate banner.png --json                    # machine-readable estimates
 ```
+
+Point it at a directory and glimpse scans every image in it, recursively, behind a progress bar. Pass `--format` to see one outcome per file, or omit it to see the format that saves the most for each image. The summary is sorted by bytes saved, color-classified (green saves at least a quarter, yellow saves less than that, red would grow the file), and ends with a totalizer:
+
+```bash
+glimpse estimate assets/ --format=avif           # what would AVIF buy, file by file
+glimpse estimate assets/                         # best format per image
+```
+
+<p align="center">
+  <img src="art/estimate.avif" alt="glimpse estimate scanning a directory: a sorted summary with green, yellow, and red rows and a totalizer" width="100%">
+</p>
+
+This is a real session against a folder of sample assets: huge wins for the camera photos, a marginal one for an already-lean background, and one file the estimator warns would get bigger as AVIF. Files that fail (unreadable or unrecognized) are skipped and reported; the run keeps going.
 
 Installing `ext-imagick` (or `ext-gd`) sharpens the estimates considerably: the CLI trial-encodes a small sample of your image locally to measure its actual complexity (the `sampled` tag in the output). Without either extension it falls back to size-ratio heuristics.
 

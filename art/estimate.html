@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<!--
+  Source for art/estimate.avif. The session shown is real output of the
+  estimate command run against a folder of generated sample assets: the
+  numbers, ordering, and color classes all came back from the API.
+
+    chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
+      --window-size=1200,760 --screenshot=estimate.png estimate.html
+    glimpse convert estimate.png --format=avif --optimize -o estimate.avif
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>glimpse estimate directory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #0d1017;
+    --surface-2: #10131b;
+    --border: #1d2230;
+    --border-strong: #2a3142;
+    --text: #e6e6e3;
+    --muted: #9aa0ad;
+    --faint: #6b7280;
+    --accent: #6088d5;
+    --green: #5be37d;
+    --yellow: #e8c468;
+    --red: #e8695c;
+    --violet: #c3a3f5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 760px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(#2a3142 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: .3;
+    -webkit-mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
+  }
+  .glow {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 900px; height: 620px;
+    background: radial-gradient(closest-side, rgba(96,136,213,.10), transparent 70%);
+  }
+
+  .term {
+    position: relative;
+    width: 1000px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(96,136,213,.08), 0 24px 60px -20px rgba(0,0,0,.8);
+  }
+  .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .bar .d { width: 11px; height: 11px; }
+  .bar .d.r { background: #e8695c; }
+  .bar .d.y { background: #e8c468; }
+  .bar .d.g { background: #5be37d; }
+  .bar .label { margin-left: 12px; color: var(--faint); font-size: 13px; }
+
+  pre {
+    padding: 26px 30px 30px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .p   { color: var(--green); font-weight: 700; }
+  .o   { color: var(--accent); }
+  .dim { color: var(--faint); }
+  .mut { color: var(--muted); }
+  .g   { color: var(--green); }
+  .y   { color: var(--yellow); }
+  .r   { color: var(--red); }
+  .cur {
+    display: inline-block;
+    width: 9px; height: 18px;
+    background: var(--muted);
+    vertical-align: -3px;
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+
+  <div class="term">
+    <div class="bar">
+      <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+      <span class="label">bash - glimpse</span>
+    </div>
+    <pre><span class="p">$</span> glimpse estimate assets/ <span class="o">--format=avif</span>
+
+<span class="dim">+-------------------------+----------------+--------+-----------+----------+---------+</span>
+<span class="dim">|</span> <span class="mut">File</span>                    <span class="dim">|</span> <span class="mut">Source</span>         <span class="dim">|</span> <span class="mut">Format</span> <span class="dim">|</span> <span class="mut">Estimated</span> <span class="dim">|</span> <span class="mut">Saved</span>    <span class="dim">|</span> <span class="mut">Saved %</span> <span class="dim">|</span>
+<span class="dim">+-------------------------+----------------+--------+-----------+----------+---------+</span>
+<span class="dim">|</span> <span class="g">hero.png</span>                <span class="dim">|</span> <span class="g">PNG, 12.4 MB</span>   <span class="dim">|</span> <span class="g">AVIF</span>   <span class="dim">|</span> <span class="g">~175.8 KB</span> <span class="dim">|</span> <span class="g">12.2 MB</span>  <span class="dim">|</span> <span class="g">98.6%</span>   <span class="dim">|</span>
+<span class="dim">|</span> <span class="g">photos/team-retreat.png</span> <span class="dim">|</span> <span class="g">PNG, 6.2 MB</span>    <span class="dim">|</span> <span class="g">AVIF</span>   <span class="dim">|</span> <span class="g">~87.9 KB</span>  <span class="dim">|</span> <span class="g">6.1 MB</span>   <span class="dim">|</span> <span class="g">98.6%</span>   <span class="dim">|</span>
+<span class="dim">|</span> <span class="g">photos/keynote.jpg</span>      <span class="dim">|</span> <span class="g">JPG, 692.8 KB</span>  <span class="dim">|</span> <span class="g">AVIF</span>   <span class="dim">|</span> <span class="g">~87.9 KB</span>  <span class="dim">|</span> <span class="g">604.9 KB</span> <span class="dim">|</span> <span class="g">87.3%</span>   <span class="dim">|</span>
+<span class="dim">|</span> <span class="g">photos/booth.jpg</span>        <span class="dim">|</span> <span class="g">JPG, 421.9 KB</span>  <span class="dim">|</span> <span class="g">AVIF</span>   <span class="dim">|</span> <span class="g">~58.6 KB</span>  <span class="dim">|</span> <span class="g">363.3 KB</span> <span class="dim">|</span> <span class="g">86.1%</span>   <span class="dim">|</span>
+<span class="dim">|</span> <span class="g">social-banner.webp</span>      <span class="dim">|</span> <span class="g">WEBP, 120.9 KB</span> <span class="dim">|</span> <span class="g">AVIF</span>   <span class="dim">|</span> <span class="g">~55 KB</span>    <span class="dim">|</span> <span class="g">65.9 KB</span>  <span class="dim">|</span> <span class="g">54.5%</span>   <span class="dim">|</span>
+<span class="dim">|</span> <span class="y">dark-hero-bg.png</span>        <span class="dim">|</span> <span class="y">PNG, 9.1 KB</span>    <span class="dim">|</span> <span class="y">AVIF</span>   <span class="dim">|</span> <span class="y">~7.5 KB</span>   <span class="dim">|</span> <span class="y">1.5 KB</span>   <span class="dim">|</span> <span class="y">17%</span>     <span class="dim">|</span>
+<span class="dim">|</span> <span class="g">icons/app-icon.png</span>      <span class="dim">|</span> <span class="g">PNG, 937 B</span>     <span class="dim">|</span> <span class="g">AVIF</span>   <span class="dim">|</span> <span class="g">~686 B</span>    <span class="dim">|</span> <span class="g">251 B</span>    <span class="dim">|</span> <span class="g">26.8%</span>   <span class="dim">|</span>
+<span class="dim">|</span> <span class="r">icons/grid-pattern.png</span>  <span class="dim">|</span> <span class="r">PNG, 25.5 KB</span>   <span class="dim">|</span> <span class="r">AVIF</span>   <span class="dim">|</span> <span class="r">~55.4 KB</span>  <span class="dim">|</span> <span class="r">-29.9 KB</span> <span class="dim">|</span> <span class="r">-117%</span>   <span class="dim">|</span>
+<span class="dim">+-------------------------+----------------+--------+-----------+----------+---------+</span>
+<span class="dim">|</span> Total: 8 files          <span class="dim">|</span> 19.8 MB        <span class="dim">|</span> -      <span class="dim">|</span> ~528.7 KB <span class="dim">|</span> 19.3 MB  <span class="dim">|</span> 97.4%   <span class="dim">|</span>
+<span class="dim">+-------------------------+----------------+--------+-----------+----------+---------+</span>
+<span class="dim">Estimates are heuristics for picking a target format, not guarantees.</span>
+
+<span class="p">$</span> <span class="cur"></span></pre>
+  </div>
+</body>
+</html>
