@@ -65,6 +65,24 @@ test('classifies rows green, yellow, and red', function () {
         ->and($output)->toContain("\e[31mcorrupt.png");
 });
 
+test('repeats the header every 20 rows on long listings', function () {
+    foreach (range(1, 21) as $i) {
+        createSizedImage(sprintf('photo-%02d.png', $i), 1000);
+    }
+
+    Artisan::call('estimate', ['input' => workspace()]);
+
+    expect(substr_count(Artisan::output(), 'Estimated'))->toBe(2);
+});
+
+test('does not repeat the header on short listings', function () {
+    createSizedImage('photo.png', 1000);
+
+    Artisan::call('estimate', ['input' => workspace()]);
+
+    expect(substr_count(Artisan::output(), 'Estimated'))->toBe(1);
+});
+
 test('sorts the batch json by bytes saved as well', function () {
     createSizedImage('a-grower.png', 300);
     createSizedImage('z-big-saver.png', 5000);

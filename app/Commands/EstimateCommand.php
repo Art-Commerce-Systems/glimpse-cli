@@ -21,6 +21,12 @@ class EstimateCommand extends GlimpseCommand
 
     protected $description = 'Estimate converted sizes without uploading the image';
 
+    /**
+     * How many summary rows to print between repeated header rows, so
+     * the columns stay identifiable on long listings.
+     */
+    private const HEADER_EVERY = 20;
+
     public function handle(Client $client, SampleProbe $probe): int
     {
         return $this->runGuarded(function () use ($client, $probe) {
@@ -269,15 +275,27 @@ class EstimateCommand extends GlimpseCommand
      */
     private function renderBatch(array $rows): void
     {
-        $tableRows = array_map(function (array $row) {
+        $headers = ['File', 'Source', 'Format', 'Estimated', 'Saved', 'Saved %'];
+
+        $tableRows = [];
+
+        foreach ($rows as $index => $row) {
+            if ($index > 0 && $index % self::HEADER_EVERY === 0) {
+                $tableRows[] = new TableSeparator;
+                $tableRows[] = array_map(fn (string $header) => "<info>{$header}</info>", $headers);
+                $tableRows[] = new TableSeparator;
+            }
+
             if (isset($row['error'])) {
-                return $this->colorize([$row['file'], "skipped: {$row['error']}", '-', '-', '-', '-'], 'red');
+                $tableRows[] = $this->colorize([$row['file'], "skipped: {$row['error']}", '-', '-', '-', '-'], 'red');
+
+                continue;
             }
 
             $size = data_get($row, 'size');
             $savedPercent = data_get($row, 'saved_percent');
 
-            return $this->colorize([
+            $tableRows[] = $this->colorize([
                 $row['file'],
                 strtoupper((string) $row['source_format']).', '.$this->humanSize((int) $row['source_size']),
                 is_string(data_get($row, 'format')) ? strtoupper((string) data_get($row, 'format')) : '?',
@@ -285,7 +303,7 @@ class EstimateCommand extends GlimpseCommand
                 $this->formatSaved(data_get($row, 'saved')),
                 is_numeric($savedPercent) ? $savedPercent.'%' : '?',
             ], $this->rowColor($row));
-        }, $rows);
+        }
 
         $totals = $this->totals($rows);
 
