@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<!--
+  Source for art/terminal.avif. The session shown is real output of the
+  estimate and convert commands run against art/banner.avif's on-frame PNG.
+
+    chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
+      --window-size=1200,760 --screenshot=terminal.png terminal.html
+    glimpse convert terminal.png --format=avif --optimize -o terminal.avif
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>glimpse terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #0d1017;
+    --surface-2: #10131b;
+    --border: #1d2230;
+    --border-strong: #2a3142;
+    --text: #e6e6e3;
+    --muted: #9aa0ad;
+    --faint: #6b7280;
+    --accent: #6088d5;
+    --green: #5be37d;
+    --violet: #c3a3f5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1200px; height: 760px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(#2a3142 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: .3;
+    -webkit-mask-image: radial-gradient(ellipse at center, transparent 40%, black 100%);
+  }
+  .glow {
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: 900px; height: 620px;
+    background: radial-gradient(closest-side, rgba(96,136,213,.10), transparent 70%);
+  }
+
+  .term {
+    position: relative;
+    width: 1000px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(96,136,213,.08), 0 24px 60px -20px rgba(0,0,0,.8);
+  }
+  .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .bar .d { width: 11px; height: 11px; }
+  .bar .d.r { background: #e8695c; }
+  .bar .d.y { background: #e8c468; }
+  .bar .d.g { background: #5be37d; }
+  .bar .label { margin-left: 12px; color: var(--faint); font-size: 13px; }
+
+  pre {
+    padding: 26px 30px 30px;
+    font-family: inherit;
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text);
+  }
+  .p   { color: var(--green); font-weight: 700; }
+  .o   { color: var(--accent); }
+  .b   { font-weight: 700; }
+  .dim { color: var(--faint); }
+  .mut { color: var(--muted); }
+  .ok  { color: var(--green); }
+  .win { color: var(--green); font-weight: 700; }
+  .cur {
+    display: inline-block;
+    width: 9px; height: 19px;
+    background: var(--muted);
+    vertical-align: -3px;
+  }
+</style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+
+  <div class="term">
+    <div class="bar">
+      <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+      <span class="label">bash - glimpse</span>
+    </div>
+    <pre><span class="p">$</span> glimpse estimate banner.png
+<span class="b">Source</span>: PNG, 429.7 KB, 3200x840, sampled
+
+<span class="dim">+--------+----------------+----------+---------+---------+</span>
+<span class="dim">|</span> <span class="mut">Format</span> <span class="dim">|</span> <span class="mut">Estimated size</span> <span class="dim">|</span> <span class="mut">Saved</span>    <span class="dim">|</span> <span class="mut">Saved %</span> <span class="dim">|</span> <span class="mut">Quality</span> <span class="dim">|</span>
+<span class="dim">+--------+----------------+----------+---------+---------+</span>
+<span class="dim">|</span> JPG    <span class="dim">|</span> ~132.4 KB      <span class="dim">|</span> 297.4 KB <span class="dim">|</span> 69.2%   <span class="dim">|</span> 85      <span class="dim">|</span>
+<span class="dim">|</span> PNG    <span class="dim">|</span> ~193.4 KB      <span class="dim">|</span> 236.4 KB <span class="dim">|</span> 55%     <span class="dim">|</span> -       <span class="dim">|</span>
+<span class="dim">|</span> WEBP   <span class="dim">|</span> ~73.5 KB       <span class="dim">|</span> 356.2 KB <span class="dim">|</span> 82.9%   <span class="dim">|</span> 85      <span class="dim">|</span>
+<span class="dim">|</span> <span class="win">AVIF</span>   <span class="dim">|</span> <span class="win">~36.8 KB</span>       <span class="dim">|</span> <span class="win">393 KB</span>   <span class="dim">|</span> <span class="win">91.4%</span>   <span class="dim">|</span> <span class="win">85</span>      <span class="dim">|</span>
+<span class="dim">+--------+----------------+----------+---------+---------+</span>
+<span class="dim">Estimates are heuristics for picking a target format, not guarantees.</span>
+
+<span class="p">$</span> glimpse convert banner.png <span class="o">--format=avif</span>
+<span class="ok">Wrote banner.avif (image/avif, 23.8 KB, 3200x840)</span>
+
+<span class="p">$</span> <span class="cur"></span></pre>
+  </div>
+</body>
+</html>

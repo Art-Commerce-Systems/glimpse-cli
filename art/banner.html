@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<!--
+  Source for art/banner.avif (two frames, blinking status dot in the kicker).
+  Render each frame with headless Chrome, build a gif, and let glimpse
+  itself produce the animated AVIF:
+
+    chrome --headless --hide-scrollbars --force-device-scale-factor=2 \
+      --window-size=1600,420 --screenshot=frame-on.png  banner.html#on
+    chrome ... --screenshot=frame-off.png banner.html#off
+    magick -delay 50 -loop 0 frame-on.png frame-off.png banner.gif
+    glimpse convert banner.gif --format=avif -o banner.avif
+
+  The size printed inside the terminal card must match the real output of
+  `glimpse convert frame-on.png --format=avif`; re-run until it converges.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>glimpse banner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0b0f;
+    --surface: #0d1017;
+    --surface-2: #10131b;
+    --border: #1d2230;
+    --border-strong: #2a3142;
+    --text: #e6e6e3;
+    --muted: #9aa0ad;
+    --faint: #6b7280;
+    --accent: #6088d5;
+    --green: #5be37d;
+    --violet: #c3a3f5;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1600px; height: 420px; overflow: hidden; }
+  body {
+    background: var(--bg);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--text);
+    position: relative;
+  }
+
+  /* faint dot grid, fading out to the right */
+  .grid {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(#2a3142 1px, transparent 1px);
+    background-size: 26px 26px;
+    opacity: .35;
+    -webkit-mask-image: linear-gradient(115deg, black 0%, transparent 62%);
+  }
+  /* soft accent glow behind the terminal */
+  .glow {
+    position: absolute; right: -140px; top: -180px;
+    width: 720px; height: 720px;
+    background: radial-gradient(closest-side, rgba(96,136,213,.16), transparent 70%);
+  }
+  .glow2 {
+    position: absolute; left: -160px; bottom: -260px;
+    width: 640px; height: 640px;
+    background: radial-gradient(closest-side, rgba(91,227,125,.07), transparent 70%);
+  }
+
+  .frame {
+    position: absolute; inset: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .wrap {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 84px 0 88px;
+  }
+
+  .left { max-width: 780px; }
+
+  .kicker {
+    display: flex; align-items: center; gap: 14px;
+    color: var(--faint);
+    font-size: 15px;
+    letter-spacing: .08em;
+    margin-bottom: 26px;
+  }
+  .kicker .dot {
+    width: 8px; height: 8px;
+    background: var(--green);
+    box-shadow: 0 0 10px rgba(91,227,125,.8);
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  /* frame capture: #on = dot solid, #off = dot hidden */
+  body.dot-on .kicker .dot { animation: none; opacity: 1; }
+  body.dot-off .kicker .dot { animation: none; opacity: 0; }
+
+  .brand {
+    display: flex; align-items: center; gap: 20px;
+    margin-bottom: 22px;
+  }
+  .brand svg { height: 58px; width: auto; color: var(--text); }
+  .brand .name {
+    font-size: 58px;
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1;
+  }
+
+  .tagline {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -.01em;
+    margin-bottom: 18px;
+    white-space: nowrap;
+  }
+  .tagline .accent { color: var(--accent); }
+
+  .sub {
+    color: var(--muted);
+    font-size: 17px;
+    line-height: 1.65;
+  }
+  .sub .g { color: var(--green); }
+
+  .term {
+    position: relative;
+    width: 560px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 0 0 1px rgba(96,136,213,.08), 0 24px 60px -20px rgba(0,0,0,.8);
+    font-size: 15.5px;
+    line-height: 1.9;
+  }
+  .term .bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+  .term .bar .d { width: 11px; height: 11px; }
+  .term .bar .d.r { background: #e8695c; }
+  .term .bar .d.y { background: #e8c468; }
+  .term .bar .d.g { background: #5be37d; }
+  .term .bar .label { margin-left: auto; color: var(--faint); font-size: 12.5px; }
+  .term .body { padding: 20px 22px 22px; }
+  .p  { color: var(--green); }
+  .c  { color: var(--text); }
+  .o  { color: var(--accent); }
+  .ok { color: var(--green); }
+  .m  { color: var(--muted); }
+</style>
+<script>
+  addEventListener('DOMContentLoaded', () => {
+    if (location.hash === '#on') document.body.classList.add('dot-on');
+    if (location.hash === '#off') document.body.classList.add('dot-off');
+  });
+</script>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <div class="glow2"></div>
+  <div class="frame"></div>
+
+  <div class="wrap">
+    <div class="left">
+      <div class="kicker"><span class="dot"></span>// GLIMPSE CLI</div>
+      <div class="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="14 60 172 80" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 100 Q100 54 178 100 Q100 146 22 100 Z"></path>
+          <circle cx="100" cy="100" r="22"></circle>
+          <circle cx="100" cy="100" r="6.5" stroke="none" fill="#5be37d"></circle>
+        </svg>
+        <div class="name">glimpse</div>
+      </div>
+      <div class="tagline">The image API for <span class="accent">developers</span>.</div>
+      <div class="sub">Convert, optimize, resize, thumbnail and inspect images from your<br>terminal, with <span class="g">zero</span> image binaries installed on your machine.</div>
+    </div>
+
+    <div class="term">
+      <div class="bar">
+        <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+        <span class="label">bash</span>
+      </div>
+      <div class="body">
+        <div><span class="p">$</span> <span class="c">composer global require glimpseimg/cli</span></div>
+        <div><span class="p">$</span> <span class="c">glimpse auth</span></div>
+        <div><span class="p">$</span> <span class="c">glimpse convert banner.png <span class="o">--format=avif</span></span></div>
+        <div><span class="ok">Wrote banner.avif (image/avif, 23.8 KB, 3200x840)</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
