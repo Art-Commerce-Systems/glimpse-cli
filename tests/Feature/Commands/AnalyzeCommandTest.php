@@ -3,6 +3,7 @@
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Tests\Fixtures\Images;
 
 beforeEach(function () {
     putenv('GLIMPSE_TOKEN=test-token');
@@ -23,8 +24,16 @@ test('derives the payload from the local file and uploads no bytes', function ()
             && $request['height'] === 1
             && is_float($request['sample_bpp'])
             && $request['sample_bpp'] > 0
-            && ! array_key_exists('quality', $request->data());
+            && ! array_key_exists('quality', $request->data())
+            && ! array_key_exists('frames', $request->data());
     });
+});
+
+test('sends the frame count for an animated source', function () {
+    $this->artisan('analyze', ['input' => createImage('spinner.gif', Images::animatedGif())])
+        ->assertExitCode(0);
+
+    Http::assertSent(fn (Request $request) => $request['format'] === 'gif' && $request['frames'] === 3);
 });
 
 test('mentions the sample in the source line', function () {

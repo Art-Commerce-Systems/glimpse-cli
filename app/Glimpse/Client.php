@@ -51,11 +51,13 @@ final class Client
     /**
      * Predict converted output sizes from metadata alone; no image bytes
      * are sent. The optional sample bits per pixel (a local JPEG trial
-     * encode, see SampleProbe) makes the lossy estimates far tighter.
+     * encode, see SampleProbe) makes the lossy estimates far tighter. The
+     * optional frame count (see FrameCounter) makes the AVIF estimate
+     * honest for animated sources: AVIF output keeps every frame.
      *
      * @return list<array<string, mixed>>
      */
-    public function analyze(ImageFormat $format, int $size, ?int $width = null, ?int $height = null, ?int $quality = null, ?float $sampleBpp = null): array
+    public function analyze(ImageFormat $format, int $size, ?int $width = null, ?int $height = null, ?int $quality = null, ?float $sampleBpp = null, ?int $frames = null): array
     {
         $estimates = $this->post('/v1/analyze', [
             'format' => $format->value,
@@ -64,6 +66,7 @@ final class Client
             'height' => $height,
             'quality' => $quality,
             'sample_bpp' => $sampleBpp,
+            'frames' => $frames,
         ]);
 
         return array_values(array_filter($estimates, 'is_array'));

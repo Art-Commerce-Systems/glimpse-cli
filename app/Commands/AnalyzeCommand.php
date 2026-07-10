@@ -56,7 +56,7 @@ class AnalyzeCommand extends GlimpseCommand
 
         [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-        $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp);
+        $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes));
 
         if ($target !== null) {
             $estimates = [$this->pick($estimates, $target)

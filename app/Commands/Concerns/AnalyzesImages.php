@@ -6,6 +6,7 @@ use App\Enums\ImageFormat;
 use App\Glimpse\ApiException;
 use App\Glimpse\AuthException;
 use App\Glimpse\Client;
+use App\Glimpse\FrameCounter;
 use App\Glimpse\SampleProbe;
 
 trait AnalyzesImages
@@ -29,7 +30,7 @@ trait AnalyzesImages
 
             [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-            $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp);
+            $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes));
 
             $pick = $this->pick($estimates, $target) ?? throw new ApiException(
                 $target === null ? 'No estimates returned.' : 'No estimate for '.strtoupper($target->value).'.',
@@ -75,6 +76,19 @@ trait AnalyzesImages
         }
 
         return $best;
+    }
+
+    /**
+     * Count the frames to send with the analysis: only a real animation
+     * is worth reporting, a still (or an unknown count) is the API's
+     * default. AVIF keeps every frame, so the count is what makes its
+     * estimate honest for animated sources.
+     */
+    private function frames(string $bytes): ?int
+    {
+        $frames = (new FrameCounter)->count($bytes);
+
+        return $frames !== null && $frames > 1 ? $frames : null;
     }
 
     /**

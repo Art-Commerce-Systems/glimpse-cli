@@ -137,7 +137,7 @@ test('analyze posts metadata only, with no image payload', function () {
     });
 });
 
-test('analyze omits dimensions, quality, and sample from the payload when null', function () {
+test('analyze omits dimensions, quality, sample, and frames from the payload when null', function () {
     Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
 
     app(Client::class)->analyze(ImageFormat::Png, 1_000_000);
@@ -145,7 +145,8 @@ test('analyze omits dimensions, quality, and sample from the payload when null',
     Http::assertSent(fn (Request $request) => ! array_key_exists('width', $request->data())
         && ! array_key_exists('height', $request->data())
         && ! array_key_exists('quality', $request->data())
-        && ! array_key_exists('sample_bpp', $request->data()));
+        && ! array_key_exists('sample_bpp', $request->data())
+        && ! array_key_exists('frames', $request->data()));
 });
 
 test('analyze sends the sample bpp when given', function () {
@@ -154,6 +155,14 @@ test('analyze sends the sample bpp when given', function () {
     app(Client::class)->analyze(ImageFormat::Jpg, 2_500_000, 4032, 3024, sampleBpp: 0.7066);
 
     Http::assertSent(fn (Request $request) => $request['sample_bpp'] === 0.7066);
+});
+
+test('analyze sends the frame count when given', function () {
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
+
+    app(Client::class)->analyze(ImageFormat::Gif, 24_000, 64, 64, frames: 20);
+
+    Http::assertSent(fn (Request $request) => $request['frames'] === 20);
 });
 
 test('a 401 response maps to AuthException with the auth hint', function () {
