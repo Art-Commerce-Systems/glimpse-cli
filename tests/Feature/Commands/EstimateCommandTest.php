@@ -150,6 +150,21 @@ test('scans a directory recursively and prints a row per image plus a totalizer'
         ->and($output)->toContain('Total: 2 files');
 });
 
+test('directory scans respect .glimpseignore', function () {
+    createImage('a.png');
+    createImage('ignored/b.png');
+
+    file_put_contents(workspace().'/.glimpseignore', "ignored/\n");
+
+    $exitCode = Artisan::call('estimate', ['input' => workspace()]);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(0)
+        ->and($output)->toContain('a.png')
+        ->and($output)->not->toContain('ignored/b.png')
+        ->and($output)->toContain('Total: 1 files');
+});
+
 test('shows only the format that saves the most when --format is omitted', function () {
     createImage('a.png');
 

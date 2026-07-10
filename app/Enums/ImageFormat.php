@@ -31,7 +31,7 @@ enum ImageFormat: string
             str_starts_with($binary, "\x89PNG\r\n\x1A\n") => self::Png,
             str_starts_with($binary, 'GIF87a'), str_starts_with($binary, 'GIF89a') => self::Gif,
             str_starts_with($binary, 'RIFF') && substr($binary, 8, 4) === 'WEBP' => self::Webp,
-            substr($binary, 4, 8) === 'ftypavif' => self::Avif,
+            substr($binary, 4, 8) === 'ftypavif', substr($binary, 4, 8) === 'ftypavis' => self::Avif,
             default => null,
         };
     }

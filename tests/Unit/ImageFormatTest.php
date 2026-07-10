@@ -9,7 +9,8 @@ test('tryFromBinary detects each supported format by its magic numbers', functio
         ->and(ImageFormat::tryFromBinary('GIF89a'.str_repeat("\x00", 20)))->toBe(ImageFormat::Gif)
         ->and(ImageFormat::tryFromBinary('GIF87a'.str_repeat("\x00", 20)))->toBe(ImageFormat::Gif)
         ->and(ImageFormat::tryFromBinary('RIFF'."\x24\x00\x00\x00".'WEBPVP8 '))->toBe(ImageFormat::Webp)
-        ->and(ImageFormat::tryFromBinary("\x00\x00\x00\x20ftypavifavifmif1"))->toBe(ImageFormat::Avif);
+        ->and(ImageFormat::tryFromBinary("\x00\x00\x00\x20ftypavifavifmif1"))->toBe(ImageFormat::Avif)
+        ->and(ImageFormat::tryFromBinary("\x00\x00\x00\x2Cftypavisavifavis"))->toBe(ImageFormat::Avif);
 });
 
 test('tryFromBinary returns null for unsupported bytes', function () {

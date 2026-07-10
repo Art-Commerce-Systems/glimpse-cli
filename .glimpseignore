@@ -1,0 +1,14 @@
+# Third-party packages ship their own images (jolinotif has pngs/gifs)
+vendor/
+
+# Compiled PHAR and build artifacts
+builds/
+
+# Test fixtures are intentionally tiny or corrupt
+tests/
+
+# GitHub requires PNG for the social preview and repo icon, so the
+# AVIF conversion check would suggest is not an option. Both are
+# losslessly optimized already.
+art/icon.png
+art/social-card.png

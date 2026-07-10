@@ -196,6 +196,42 @@ This is a real session against a folder of sample assets: huge wins for the came
 
 Installing `ext-imagick` (or `ext-gd`) sharpens the estimates considerably: the CLI trial-encodes a small sample of your image locally to measure its actual complexity (the `sampled` tag in the output). Without either extension it falls back to size-ratio heuristics.
 
+### Check
+
+The CI gate. `check` scans a directory (or a single file), estimates the best-format saving for every image, and lists only the ones that would benefit from optimization. It exits `1` when any image is over the threshold, so your pipeline fails until the images are optimized. Like `estimate`, nothing is uploaded.
+
+```bash
+glimpse check .                                  # fail if any image could save 10% or more
+glimpse check assets/ --threshold=25             # only fail on big wins
+glimpse check . --json                           # machine-readable report
+```
+
+```
++---------------------+---------+-----------+--------+---------+
+| File                | Current | Estimated | Format | Saved % |
++---------------------+---------+-----------+--------+---------+
+| art/social-card.png | 1.2 MB  | ~180 KB   | AVIF   | 85.0%   |
+| art/icon.png        | 96 KB   | ~34 KB    | WEBP   | 64.6%   |
++---------------------+---------+-----------+--------+---------+
+2 of 14 images need optimization (threshold: 10%).
+```
+
+An image "needs optimization" when the format that saves the most (the same pick `estimate` makes) would save at least `--threshold` percent (default 10, decimals allowed). Files that cannot be checked (unreadable or unrecognized) are listed separately and also fail the run: a green check means every image was checked and passed. A directory with no images passes.
+
+#### .glimpseignore
+
+Drop a `.glimpseignore` file in the directory you scan to exclude paths, using gitignore syntax:
+
+```gitignore
+# generated assets, not worth optimizing
+vendor/
+public/build/
+*.gif
+!logo.gif
+```
+
+Patterns are relative to the scanned directory. Negated patterns (`!logo.gif`) re-include files, with the same caveat as git: a file inside an ignored directory cannot be re-included. `estimate <dir>` honors the same file.
+
 ### Info
 
 ```bash
@@ -212,6 +248,41 @@ glimpse thumbnail photo.jpg --output=- | imgcat
 cat photo.png | glimpse convert - --format=webp -o photo.webp
 glimpse convert photo.png --format=avif --json | jq .size
 ```
+
+## Continuous Integration
+
+Add `glimpse check` to your GitHub workflow to keep unoptimized images out of your repo. Store your API token as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) named `GLIMPSE_TOKEN` (glimpse picks it up from the environment, see [Authentication](#authentication)):
+
+```yaml
+name: Images
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install glimpse
+        run: |
+          curl -Lo /usr/local/bin/glimpse https://github.com/mathiasgrimm/glimpse-cli/releases/latest/download/glimpse
+          chmod +x /usr/local/bin/glimpse
+      - name: Check images
+        run: glimpse check .
+        env:
+          GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
+```
+
+GitHub's `ubuntu-latest` runners ship PHP out of the box, so the PHAR runs as-is. Exclude paths you do not control (vendored packages, generated assets) with a [`.glimpseignore`](#glimpseignore) file at the repo root, and tune the failure bar with `--threshold`. When the check fails, fix it by running the optimizer locally:
+
+```bash
+glimpse optimize path/to/offender.png --in-place
+```
+
+This repository runs the same gate on itself: see [`.github/workflows/images.yml`](.github/workflows/images.yml).
 
 ## Limits
 

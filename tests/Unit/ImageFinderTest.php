@@ -52,3 +52,41 @@ test('returns an empty list for a directory with no images', function () {
 
     expect((new ImageFinder)->find(workspace()))->toBe([]);
 });
+
+test('excludes files matching .glimpseignore patterns', function () {
+    createImage('photo.png');
+    createImage('logo.webp');
+    createImage('albums/cover.webp');
+
+    file_put_contents(workspace().'/.glimpseignore', "*.webp\n");
+
+    expect((new ImageFinder)->find(workspace()))->toBe([workspace().'/photo.png']);
+});
+
+test('prunes directories matching .glimpseignore patterns', function () {
+    createImage('photo.png');
+    createImage('vendor/package/logo.png');
+
+    file_put_contents(workspace().'/.glimpseignore', "vendor/\n");
+
+    expect((new ImageFinder)->find(workspace()))->toBe([workspace().'/photo.png']);
+});
+
+test('negated .glimpseignore patterns re-include files', function () {
+    createImage('logo.webp');
+    createImage('albums/cover.webp');
+
+    file_put_contents(workspace().'/.glimpseignore', "*.webp\n!albums/cover.webp\n");
+
+    expect((new ImageFinder)->find(workspace()))->toBe([workspace().'/albums/cover.webp']);
+});
+
+test('scans normally without a .glimpseignore file', function () {
+    createImage('photo.png');
+    createImage('albums/cover.webp');
+
+    expect((new ImageFinder)->find(workspace()))->toBe([
+        workspace().'/albums/cover.webp',
+        workspace().'/photo.png',
+    ]);
+});
