@@ -77,7 +77,7 @@ php glimpse --version
 
 ## Authentication
 
-Grab a free API key at [glimpseimg.com](https://glimpseimg.com) (**Settings → API Tokens**, no credit card required), then:
+Grab an API key on the free tier at [glimpseimg.com](https://glimpseimg.com) (**Settings → API Tokens**), then:
 
 ```bash
 glimpse auth
@@ -231,5 +231,5 @@ glimpse-cli is open-source software licensed under the [MIT license](LICENSE).
 
 <p align="center">
   <sub>Every image on this page was converted by glimpse itself, including the animated banner (GIF in, animated AVIF out).<br>
-  Get your API key at <a href="https://glimpseimg.com"><strong>glimpseimg.com</strong></a>. No credit card required to start.</sub>
+  Get your API key at <a href="https://glimpseimg.com"><strong>glimpseimg.com</strong></a>. Start on the free tier.</sub>
 </p>
