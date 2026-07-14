@@ -42,6 +42,20 @@ test('--in-place overwrites the input file without --force', function () {
         ->and(file_exists(dirname($input).'/photo.thumb.png'))->toBeFalse();
 });
 
+test('records only the output in an existing baseline', function () {
+    Http::fake(['*/v1/thumbnail' => Http::response(fakeTransformResponse())]);
+
+    $input = createImage('photo.png');
+    writeBaseline([]);
+
+    $this->artisan('thumbnail', ['input' => $input])
+        ->assertExitCode(0);
+
+    expect(readBaseline()['files'])->toBe([
+        'photo.thumb.jpg' => baselineEntry(dirname($input).'/photo.thumb.jpg'),
+    ]);
+});
+
 test('passes width, height, and quality through to the API', function () {
     Http::fake(['*/v1/thumbnail' => Http::response(fakeTransformResponse())]);
 

@@ -309,16 +309,45 @@ test('--in-place with an extension change records only the output', function () 
     ]);
 });
 
-test('an output outside the baseline root records only the source', function () {
+test('an output outside the baseline root records nothing', function () {
     Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
 
     $input = createImage('photo.png');
     writeBaseline([]);
+    mkdir(test()->configHome.'/.git');
 
     $this->artisan('convert', ['input' => $input, '--output' => test()->configHome.'/outside.webp'])
         ->assertExitCode(0);
 
-    expect(array_keys(readBaseline()['files']))->toBe(['photo.png']);
+    expect(readBaseline()['files'])->toBe([]);
+});
+
+test('--in-place with an extension change drops the stale source entry', function () {
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    writeBaseline(['photo.png' => baselineEntry($input)]);
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp', '--in-place' => true])
+        ->assertExitCode(0);
+
+    expect(readBaseline()['files'])->toBe([
+        'photo.webp' => baselineEntry(dirname($input).'/photo.webp'),
+    ]);
+});
+
+test('a malformed baseline does not fail a conversion that succeeded', function () {
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    file_put_contents(workspace().'/.glimpse-baseline.json', '{nope');
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
+        ->expectsOutputToContain('Wrote')
+        ->assertExitCode(0);
+
+    expect(file_get_contents(dirname($input).'/photo.webp'))->toBe(Images::jpg())
+        ->and(file_get_contents(workspace().'/.glimpse-baseline.json'))->toBe('{nope');
 });
 
 test('rejects inputs over the 15 MiB limit before any HTTP request', function () {

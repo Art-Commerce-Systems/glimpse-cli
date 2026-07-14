@@ -2,11 +2,14 @@
 
 namespace App\Commands;
 
+use App\Commands\Concerns\UpdatesBaseline;
 use GlimpseImg\ApiException;
 use GlimpseImg\Client;
 
 class ResizeCommand extends GlimpseCommand
 {
+    use UpdatesBaseline;
+
     protected $signature = 'resize
         {input : Path to the image, or - for stdin}
         {--width= : Maximum width in pixels}
@@ -42,6 +45,7 @@ class ResizeCommand extends GlimpseCommand
             $result = $client->resize($this->readImage($input), $width, $height, $optimize, $quality);
 
             $path = $this->writeResult($input, $output, 'resized', $result);
+            $this->recordInBaseline($input, $path, recordSource: false);
             $this->emit($result, $path);
 
             return self::SUCCESS;

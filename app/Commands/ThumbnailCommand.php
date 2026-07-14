@@ -2,10 +2,13 @@
 
 namespace App\Commands;
 
+use App\Commands\Concerns\UpdatesBaseline;
 use GlimpseImg\Client;
 
 class ThumbnailCommand extends GlimpseCommand
 {
+    use UpdatesBaseline;
+
     protected $signature = 'thumbnail
         {input : Path to the image, or - for stdin}
         {--width= : Maximum width in pixels (API default 300)}
@@ -32,6 +35,7 @@ class ThumbnailCommand extends GlimpseCommand
             );
 
             $path = $this->writeResult($input, $output, 'thumb', $result);
+            $this->recordInBaseline($input, $path, recordSource: false);
             $this->emit($result, $path);
 
             return self::SUCCESS;

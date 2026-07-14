@@ -81,6 +81,20 @@ test('omits optimize and quality from the payload when the flags are not given',
         && ! array_key_exists('quality', $request->data()));
 });
 
+test('records only the output in an existing baseline', function () {
+    Http::fake(['*/v1/resize' => Http::response(fakeTransformResponse())]);
+
+    $input = createImage('photo.png');
+    writeBaseline([]);
+
+    $this->artisan('resize', ['input' => $input, '--width' => '800'])
+        ->assertExitCode(0);
+
+    expect(readBaseline()['files'])->toBe([
+        'photo.resized.jpg' => baselineEntry(dirname($input).'/photo.resized.jpg'),
+    ]);
+});
+
 test('--quality without --optimize fails before any HTTP request', function () {
     Http::fake();
 

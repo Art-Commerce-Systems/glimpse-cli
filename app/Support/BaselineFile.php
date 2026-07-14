@@ -6,8 +6,8 @@ use GlimpseImg\ApiException;
 use stdClass;
 
 /**
- * A .glimpse-baseline.json file: a JSON list of already-processed files at the
- * scan root, so analyze and check skip them. Entries match on relative
+ * A .glimpse-baseline.json file: a JSON list of already-processed files at
+ * the scan root, so analyze and check skip them. Entries match on relative
  * path plus size plus xxh128 content hash; a file whose content changed
  * re-enters the scan. The hash is for change detection, not security, so
  * a fast non-cryptographic digest is the right tool.
@@ -23,8 +23,9 @@ final class BaselineFile
 
     /**
      * Load the baseline at the directory. A missing or empty file is an
-     * empty baseline; a malformed one fails loudly so a typo never turns
-     * into a silently un-baselined (or fully skipped) scan.
+     * empty baseline; an unreadable or malformed one fails loudly so a
+     * permission problem or a typo never turns into a silently
+     * un-baselined (or fully skipped) scan.
      */
     public static function load(string $directory): self
     {
@@ -34,7 +35,13 @@ final class BaselineFile
             return new self([]);
         }
 
-        $content = trim((string) file_get_contents($path));
+        $content = @file_get_contents($path);
+
+        if ($content === false) {
+            throw new ApiException("Could not read {$path}.");
+        }
+
+        $content = trim($content);
 
         if ($content === '') {
             return new self([]);
@@ -60,10 +67,10 @@ final class BaselineFile
     }
 
     /**
-     * Walk up from the directory to the filesystem root and return the
-     * first directory containing a baseline file, or null when there is
-     * none. Used by convert/optimize to keep an existing baseline current
-     * without ever creating one.
+     * Walk up from the directory and return the first one containing a
+     * baseline file, or null when there is none. The walk stops at the
+     * filesystem root. Used to keep an existing baseline current without
+     * ever creating one.
      */
     public static function findRoot(string $directory): ?string
     {
@@ -89,6 +96,19 @@ final class BaselineFile
     }
 
     /**
+     * The path of a file relative to a directory that contains it, with
+     * separators normalized to forward slashes so baseline keys match
+     * across platforms.
+     */
+    public static function relativePath(string $directory, string $path): string
+    {
+        $directory = str_replace('\\', '/', $directory);
+        $path = str_replace('\\', '/', $path);
+
+        return ltrim(substr($path, strlen(rtrim($directory, '/'))), '/');
+    }
+
+    /**
      * Whether the file is covered by the baseline: known path, same size,
      * same content. Size is compared first so the hash is only computed
      * when it could possibly match.
@@ -105,18 +125,39 @@ final class BaselineFile
             return false;
         }
 
-        return hash_file('xxh128', $absolute) === $entry['xxh128'];
+        return @hash_file('xxh128', $absolute) === $entry['xxh128'];
     }
 
     /**
-     * Add or refresh the entry for the file.
+     * Add or refresh the entry for the file from its current on-disk
+     * content. A file that vanished or turned unreadable in the meantime
+     * is skipped rather than crashing the run; it either no longer needs
+     * an entry or will simply re-enter the next scan.
      */
     public function record(string $relative, string $absolute): void
     {
-        $this->files[$relative] = [
-            'size' => (int) filesize($absolute),
-            'xxh128' => (string) hash_file('xxh128', $absolute),
-        ];
+        $size = @filesize($absolute);
+        $hash = $size === false ? false : @hash_file('xxh128', $absolute);
+
+        if ($size === false || $hash === false) {
+            return;
+        }
+
+        $this->put($relative, $size, $hash);
+    }
+
+    /**
+     * Add or refresh an entry from a size and hash that were already
+     * computed, e.g. from bytes the caller had in memory.
+     */
+    public function put(string $relative, int $size, string $hash): void
+    {
+        $this->files[$relative] = ['size' => $size, 'xxh128' => $hash];
+    }
+
+    public function forget(string $relative): void
+    {
+        unset($this->files[$relative]);
     }
 
     /**
@@ -138,15 +179,25 @@ final class BaselineFile
         return count($this->files);
     }
 
+    /**
+     * Write the baseline out, failing loudly instead of quietly losing
+     * entries: an unencodable filename or a failed write must never
+     * replace a healthy committed baseline with garbage.
+     */
     public function save(string $directory): void
     {
         ksort($this->files);
 
-        $files = $this->files === [] ? new stdClass : $this->files;
+        $path = rtrim($directory, '/').'/'.self::FILENAME;
 
-        file_put_contents(
-            rtrim($directory, '/').'/'.self::FILENAME,
-            json_encode(['files' => $files], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL,
-        );
+        $json = json_encode(['files' => $this->files === [] ? new stdClass : $this->files], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if ($json === false) {
+            throw new ApiException("Could not encode {$path}: ".json_last_error_msg().'. Is a filename not valid UTF-8?');
+        }
+
+        if (@file_put_contents($path, $json.PHP_EOL) === false) {
+            throw new ApiException("Could not write {$path}.");
+        }
     }
 }

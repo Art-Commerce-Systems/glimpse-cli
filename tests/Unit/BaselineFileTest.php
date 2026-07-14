@@ -132,6 +132,75 @@ test('a saved baseline loads back with the same matching', function () {
     expect(BaselineFile::load(workspace())->skips('photos/a.png', $path))->toBeTrue();
 });
 
+test('load fails loudly on an unreadable baseline', function () {
+    mkdir(workspace(), 0755, true);
+    $path = workspace().'/'.BaselineFile::FILENAME;
+    file_put_contents($path, '{"files": {}}');
+    chmod($path, 0000);
+
+    try {
+        expect(fn () => BaselineFile::load(workspace()))->toThrow(ApiException::class, 'Could not read');
+    } finally {
+        chmod($path, 0644);
+    }
+});
+
+test('save fails loudly instead of writing garbage for a non-utf8 filename', function () {
+    $path = createImage('photo.png');
+
+    $baseline = BaselineFile::load(workspace());
+    $baseline->record('photo.png', $path);
+    $baseline->put("caf\xE9.png", 1, 'abc');
+
+    expect(fn () => $baseline->save(workspace()))->toThrow(ApiException::class, 'Could not encode')
+        ->and(file_exists(workspace().'/'.BaselineFile::FILENAME))->toBeFalse();
+});
+
+test('save fails loudly when the directory is not writable', function () {
+    $path = createImage('photo.png');
+
+    $baseline = BaselineFile::load(workspace());
+    $baseline->record('photo.png', $path);
+
+    chmod(workspace(), 0555);
+
+    try {
+        expect(fn () => $baseline->save(workspace()))->toThrow(ApiException::class, 'Could not write');
+    } finally {
+        chmod(workspace(), 0755);
+    }
+});
+
+test('record skips a file that vanished instead of crashing', function () {
+    $path = createImage('photo.png');
+    unlink($path);
+
+    $baseline = BaselineFile::load(workspace());
+    $baseline->record('photo.png', $path);
+
+    expect($baseline->count())->toBe(0);
+});
+
+test('put stores a precomputed entry and forget removes one', function () {
+    $path = createImage('photo.png');
+
+    $baseline = BaselineFile::load(workspace());
+    $baseline->put('photo.png', (int) filesize($path), (string) hash_file('xxh128', $path));
+
+    expect($baseline->skips('photo.png', $path))->toBeTrue();
+
+    $baseline->forget('photo.png');
+
+    expect($baseline->count())->toBe(0)
+        ->and($baseline->skips('photo.png', $path))->toBeFalse();
+});
+
+test('relativePath strips the directory prefix and normalizes separators', function () {
+    expect(BaselineFile::relativePath('/scan/root', '/scan/root/sub/a.png'))->toBe('sub/a.png')
+        ->and(BaselineFile::relativePath('/scan/root/', '/scan/root/a.png'))->toBe('a.png')
+        ->and(BaselineFile::relativePath('C:\\scan\\root', 'C:\\scan\\root\\sub\\a.png'))->toBe('sub/a.png');
+});
+
 test('load fails loudly on a malformed baseline', function (string $content) {
     mkdir(workspace(), 0755, true);
     file_put_contents(workspace().'/'.BaselineFile::FILENAME, $content);
