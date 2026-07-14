@@ -259,7 +259,9 @@ The file lists each image with its size and content hash:
 
 An image is skipped only while its content still matches the recorded entry. Replace a baselined file with a new version and it re-enters the scan automatically. Where `.glimpseignore` says "never look at these paths", the baseline says "these exact file contents are already handled".
 
-`convert` and `optimize` keep an existing baseline current: when they write an image inside a directory that has a `.glimpse-baseline.json` (they search upward from the input, like git finds `.git`), the result and its source are recorded automatically. They never create the file; that is `--update-baseline`'s job. Re-running `analyze <dir> --update-baseline` refreshes changed entries and prunes deleted files.
+Every command finds the baseline the way git finds `.git`: by searching upward, from the directory being scanned (`analyze`, `check`) or from the file being written (`convert`, `optimize`, `resize`, `thumbnail`), stopping at the repository boundary. Scanning a subdirectory of a baselined project therefore honors the project's baseline, and `--update-baseline` updates the nearest existing baseline, creating one at the scan root only when none exists yet.
+
+The transform commands keep the baseline current automatically: `convert` and `optimize` record the written output and its source (an in-place conversion that replaced the source also cleans up its old entry), while `resize` and `thumbnail` record only the file they produced. Writing to stdout records nothing, and a baseline problem never fails a transform that already succeeded; it degrades to a warning on STDERR. The commands never create the file; that is `--update-baseline`'s job. Re-running `analyze <dir> --update-baseline` refreshes changed entries and prunes deleted files.
 
 The baseline only applies to directory scans. Naming a file explicitly (`glimpse analyze photo.png`) always analyzes it. Commit the file so CI and your teammates share the same starting point.
 

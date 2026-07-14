@@ -224,6 +224,23 @@ test('findRoot walks up to the nearest baseline', function () {
 
 test('findRoot returns null when no baseline exists up the tree', function () {
     createImage('nested/photo.png');
+    mkdir(workspace().'/.git');
 
     expect(BaselineFile::findRoot(workspace().'/nested'))->toBeNull();
+});
+
+test('findRoot stops at a repository boundary', function () {
+    createImage('nested/photo.png');
+    mkdir(workspace().'/.git');
+    writeBaseline([], test()->configHome);
+
+    expect(BaselineFile::findRoot(workspace().'/nested'))->toBeNull();
+});
+
+test('findRoot finds a baseline sitting at the repository boundary', function () {
+    createImage('nested/photo.png');
+    mkdir(workspace().'/.git');
+    writeBaseline([]);
+
+    expect(BaselineFile::findRoot(workspace().'/nested'))->toBe(workspace());
 });

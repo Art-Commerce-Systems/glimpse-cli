@@ -84,20 +84,31 @@ class AnalyzeCommand extends GlimpseCommand
     {
         $found = (new ImageFinder)->find($dir);
 
-        if ($found === []) {
+        if ($found === [] && ! $this->option('update-baseline')) {
             throw new ApiException("No image files found in {$dir}.");
         }
 
-        $baseline = BaselineFile::load($dir);
+        $root = $this->baselineRootFor($dir);
+        $baseline = BaselineFile::load($root);
 
-        [$files, $skipped] = $this->partitionByBaseline($baseline, $dir, $found);
+        if ($found === []) {
+            if ($this->option('json')) {
+                $this->emitBatchJson([], 0);
+            }
+
+            $this->updateBaseline($baseline, $root, '', []);
+
+            return self::SUCCESS;
+        }
+
+        [$files, $skipped] = $this->partitionByBaseline($baseline, $root, $dir, $found);
 
         if ($files === []) {
             $this->option('json')
                 ? $this->emitBatchJson([], $skipped)
                 : $this->info("All {$skipped} images are covered by the baseline.");
 
-            $this->updateBaseline($baseline, $dir, []);
+            $this->updateBaseline($baseline, $root, '', []);
 
             return self::SUCCESS;
         }
@@ -123,7 +134,7 @@ class AnalyzeCommand extends GlimpseCommand
 
         $this->option('json') ? $this->emitBatchJson($rows, $skipped) : $this->renderBatch($rows, $skipped);
 
-        $this->updateBaseline($baseline, $dir, $rows);
+        $this->updateBaseline($baseline, $root, $this->baselineKeyPrefix($root, $dir), $rows);
 
         $failed = count(array_filter($rows, fn (array $row) => isset($row['error'])));
 
@@ -132,26 +143,36 @@ class AnalyzeCommand extends GlimpseCommand
 
     /**
      * Record the successfully analyzed rows into the baseline and write it
-     * out. Failed rows are not recorded: a file that could not be analyzed
-     * was not processed and must keep failing `check`. Entries whose file
-     * is gone are pruned; the rest carry over untouched.
+     * out, using the size and hash captured from the analyzed bytes so the
+     * baseline reflects what was measured, not whatever is on disk by the
+     * time the batch finishes. Failed rows are not recorded: a file that
+     * could not be analyzed was not processed and must keep failing
+     * `check`. Entries whose file is gone are pruned; the rest carry over
+     * untouched.
      *
      * @param  list<array<string, mixed>>  $rows
      */
-    private function updateBaseline(BaselineFile $baseline, string $dir, array $rows): void
+    private function updateBaseline(BaselineFile $baseline, string $root, string $prefix, array $rows): void
     {
         if (! $this->option('update-baseline')) {
             return;
         }
 
         foreach ($rows as $row) {
-            if (! isset($row['error'])) {
-                $baseline->record((string) $row['file'], rtrim($dir, '/').'/'.$row['file']);
+            if (isset($row['error'])) {
+                continue;
             }
+
+            $file = (string) $row['file'];
+            $entry = $this->analyzedHashes[$file] ?? null;
+
+            $entry === null
+                ? $baseline->record($prefix.$file, rtrim($root, '/').'/'.$prefix.$file)
+                : $baseline->put($prefix.$file, $entry['size'], $entry['xxh128']);
         }
 
-        $baseline->prune($dir);
-        $baseline->save($dir);
+        $baseline->prune($root);
+        $baseline->save($root);
 
         if (! $this->option('json')) {
             $this->info(sprintf('Baseline updated: %d files (%s).', $baseline->count(), BaselineFile::FILENAME));

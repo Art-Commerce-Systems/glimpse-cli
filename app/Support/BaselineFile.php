@@ -68,9 +68,10 @@ final class BaselineFile
 
     /**
      * Walk up from the directory and return the first one containing a
-     * baseline file, or null when there is none. The walk stops at the
-     * filesystem root. Used to keep an existing baseline current without
-     * ever creating one.
+     * baseline file, or null when there is none. The walk stops at a
+     * repository boundary (a directory containing .git) or the filesystem
+     * root, so a stray baseline outside the project can never capture a
+     * scan or a write.
      */
     public static function findRoot(string $directory): ?string
     {
@@ -83,6 +84,10 @@ final class BaselineFile
         while (true) {
             if (is_file($dir.'/'.self::FILENAME)) {
                 return $dir;
+            }
+
+            if (file_exists($dir.'/.git')) {
+                return null;
             }
 
             $parent = dirname($dir);

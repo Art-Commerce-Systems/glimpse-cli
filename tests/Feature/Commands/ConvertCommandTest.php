@@ -289,7 +289,10 @@ test('walks up to the nearest baseline and records paths relative to it', functi
 test('creates no baseline when none exists', function () {
     Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
 
-    $this->artisan('convert', ['input' => createImage('photo.png'), '--format' => 'webp'])
+    $input = createImage('photo.png');
+    mkdir(workspace().'/.git');
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
         ->assertExitCode(0);
 
     expect(file_exists(workspace().'/.glimpse-baseline.json'))->toBeFalse();

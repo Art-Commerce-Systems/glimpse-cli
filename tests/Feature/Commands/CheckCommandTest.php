@@ -237,6 +237,34 @@ test('a malformed baseline fails loudly before any HTTP request', function () {
     Http::assertNothingSent();
 });
 
+test('a baseline above the scanned directory is honored', function () {
+    fakeAnalyze();
+    $covered = createImage('sub/photo.png');
+    writeBaseline(['sub/photo.png' => baselineEntry($covered)]);
+
+    $exitCode = Artisan::call('check', ['input' => workspace().'/sub']);
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain('All 1 images are covered by the baseline.');
+
+    Http::assertNothingSent();
+});
+
+test('the json report for a fully covered directory is machine readable', function () {
+    fakeAnalyze();
+    writeBaseline(['photo.png' => baselineEntry(createImage('photo.png'))]);
+
+    $exitCode = Artisan::call('check', ['input' => workspace(), '--json' => true]);
+    $decoded = json_decode(Artisan::output(), true);
+
+    expect($exitCode)->toBe(0)
+        ->and($decoded['total'])->toBe(0)
+        ->and($decoded['needs_optimization'])->toBe(0)
+        ->and($decoded['baseline_skipped'])->toBe(1);
+
+    Http::assertNothingSent();
+});
+
 test('the json report includes the baseline-skipped count', function () {
     fakeAnalyze();
     createImage('photo.png');

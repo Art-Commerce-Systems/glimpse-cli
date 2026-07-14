@@ -68,7 +68,10 @@ test('--in-place records the overwritten input with its new content', function (
 test('creates no baseline when none exists', function () {
     Http::fake(['*/v1/optimize' => Http::response(fakeTransformResponse())]);
 
-    $this->artisan('optimize', ['input' => createImage('photo.png')])
+    $input = createImage('photo.png');
+    mkdir(workspace().'/.git');
+
+    $this->artisan('optimize', ['input' => $input])
         ->assertExitCode(0);
 
     expect(file_exists(workspace().'/.glimpse-baseline.json'))->toBeFalse();

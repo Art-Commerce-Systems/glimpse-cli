@@ -381,6 +381,56 @@ test('a malformed baseline fails loudly before any HTTP request', function () {
     Http::assertNothingSent();
 });
 
+test('a baseline above the scanned directory is honored', function () {
+    $covered = createImage('sub/covered.png');
+    createImage('sub/other.png');
+    writeBaseline(['sub/covered.png' => baselineEntry($covered)]);
+
+    $exitCode = Artisan::call('analyze', ['input' => workspace().'/sub']);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(0)
+        ->and($output)->toContain('other.png')
+        ->and($output)->toContain('1 file(s) skipped by baseline.');
+
+    Http::assertSentCount(1);
+});
+
+test('--update-baseline updates a baseline above the scan directory instead of forking a new one', function () {
+    createImage('sub/new.png');
+    writeBaseline([]);
+
+    $exitCode = Artisan::call('analyze', ['input' => workspace().'/sub', '--update-baseline' => true]);
+
+    expect($exitCode)->toBe(0)
+        ->and(array_keys(readBaseline()['files']))->toBe(['sub/new.png'])
+        ->and(file_exists(workspace().'/sub/.glimpse-baseline.json'))->toBeFalse();
+});
+
+test('--update-baseline prunes deleted files even when no images remain', function () {
+    mkdir(workspace(), 0755, true);
+    writeBaseline(['gone.png' => ['size' => 1, 'xxh128' => 'stale']]);
+
+    $exitCode = Artisan::call('analyze', ['input' => workspace(), '--update-baseline' => true]);
+
+    expect($exitCode)->toBe(0)
+        ->and(Artisan::output())->toContain('Baseline updated: 0 files')
+        ->and(readBaseline()['files'])->toBe([]);
+
+    Http::assertNothingSent();
+});
+
+test('--json with --update-baseline emits pure json and still writes the baseline', function () {
+    createImage('a.png');
+
+    $exitCode = Artisan::call('analyze', ['input' => workspace(), '--json' => true, '--update-baseline' => true]);
+    $decoded = json_decode(Artisan::output(), true);
+
+    expect($exitCode)->toBe(0)
+        ->and($decoded['files'])->toHaveCount(1)
+        ->and(array_keys(readBaseline()['files']))->toBe(['a.png']);
+});
+
 test('the batch json includes the baseline-skipped count', function () {
     createImage('a.png');
     writeBaseline(['covered.png' => baselineEntry(createImage('covered.png'))]);

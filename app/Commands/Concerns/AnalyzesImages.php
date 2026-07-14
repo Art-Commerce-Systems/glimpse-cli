@@ -13,6 +13,16 @@ use GlimpseImg\SampleProbe;
 trait AnalyzesImages
 {
     /**
+     * Size and content hash of each file this run analyzed, captured from
+     * the exact bytes that were measured, so --update-baseline records
+     * what was analyzed without re-reading (or trusting) the disk after
+     * the network-bound batch finished.
+     *
+     * @var array<string, array{size: int, xxh128: string}>
+     */
+    private array $analyzedHashes = [];
+
+    /**
      * Analyze a single file inside a batch. Failures are recorded, not
      * thrown, so one bad file does not abort the scan. Auth failures do
      * abort: they would fail every remaining file the same way.
@@ -21,10 +31,14 @@ trait AnalyzesImages
      */
     private function analyzeFile(Client $client, SampleProbe $probe, string $dir, string $path, ?ImageFormat $target, ?int $quality): array
     {
-        $file = $this->relativeTo($dir, $path);
+        $file = BaselineFile::relativePath($dir, $path);
 
         try {
             $bytes = $this->readImage($path, limitBytes: false);
+
+            if ($this->hasOption('update-baseline') && (bool) $this->option('update-baseline')) {
+                $this->analyzedHashes[$file] = ['size' => strlen($bytes), 'xxh128' => hash('xxh128', $bytes)];
+            }
 
             $format = ImageFormat::tryFromBinary($bytes)
                 ?? throw new ApiException('Unrecognized image format.');
@@ -45,9 +59,30 @@ trait AnalyzesImages
         }
     }
 
-    private function relativeTo(string $dir, string $path): string
+    /**
+     * The directory whose baseline governs a scan: the nearest one at or
+     * above the scanned directory (found the way git finds .git), or the
+     * scanned directory itself when none exists yet.
+     */
+    private function baselineRootFor(string $dir): string
     {
-        return ltrim(substr($path, strlen(rtrim($dir, '/'))), '/');
+        $real = realpath($dir);
+        $real = $real === false ? rtrim($dir, '/') : $real;
+
+        return BaselineFile::findRoot($real) ?? $real;
+    }
+
+    /**
+     * The key prefix that maps scan-relative paths to root-relative
+     * baseline keys, e.g. 'sub/' when scanning <root>/sub. Empty when the
+     * scan directory is the baseline root.
+     */
+    private function baselineKeyPrefix(string $root, string $dir): string
+    {
+        $real = realpath($dir);
+        $real = $real === false ? rtrim($dir, '/') : $real;
+
+        return $real === $root ? '' : BaselineFile::relativePath($root, $real).'/';
     }
 
     /**
@@ -57,11 +92,13 @@ trait AnalyzesImages
      * @param  list<string>  $files
      * @return array{list<string>, int}
      */
-    private function partitionByBaseline(BaselineFile $baseline, string $dir, array $files): array
+    private function partitionByBaseline(BaselineFile $baseline, string $root, string $dir, array $files): array
     {
+        $prefix = $this->baselineKeyPrefix($root, $dir);
+
         $remaining = array_values(array_filter(
             $files,
-            fn (string $path) => ! $baseline->skips($this->relativeTo($dir, $path), $path),
+            fn (string $path) => ! $baseline->skips($prefix.BaselineFile::relativePath($dir, $path), $path),
         ));
 
         return [$remaining, count($files) - count($remaining)];
