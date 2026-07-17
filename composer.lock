@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "81c09eea3b781fc8879ecfeae275c053",
+    "content-hash": "d9169e51a13a2eb64187293cee560ed2",
     "packages": [
         {
             "name": "brick/math",
@@ -2591,21 +2591,21 @@
         },
         {
             "name": "mathiasgrimm/glimpse-php",
-            "version": "v0.2.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mathiasgrimm/glimpse-php.git",
-                "reference": "83775b34424c2a4f9b41d99fe4c132633ea17443"
+                "reference": "27c70f347ff06dff548a5d15078c6a0969db6d2c"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/83775b34424c2a4f9b41d99fe4c132633ea17443",
-                "reference": "83775b34424c2a4f9b41d99fe4c132633ea17443",
+                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/27c70f347ff06dff548a5d15078c6a0969db6d2c",
+                "reference": "27c70f347ff06dff548a5d15078c6a0969db6d2c",
                 "shasum": ""
             },
             "require": {
                 "guzzlehttp/guzzle": "^7.8",
-                "illuminate/http": "^10.0|^11.0|^12.0",
+                "illuminate/http": "^10.0|^11.0|^12.0|^13.0",
                 "php": "^8.2"
             },
             "require-dev": {
@@ -2654,7 +2654,7 @@
                 "issues": "https://github.com/mathiasgrimm/glimpse-php/issues",
                 "source": "https://github.com/mathiasgrimm/glimpse-php"
             },
-            "time": "2026-07-10T22:29:28+00:00"
+            "time": "2026-07-17T21:18:19+00:00"
         },
         {
             "name": "nesbot/carbon",
