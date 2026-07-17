@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use GlimpseImg\ApiException;
+use InvalidArgumentException;
 use stdClass;
 
 /**
@@ -75,7 +76,7 @@ final class BaselineFile
      */
     public static function findRoot(string $directory): ?string
     {
-        $dir = rtrim($directory, '/');
+        $dir = rtrim(str_replace('\\', '/', $directory), '/');
 
         if ($dir === '') {
             $dir = '/';
@@ -103,14 +104,22 @@ final class BaselineFile
     /**
      * The path of a file relative to a directory that contains it, with
      * separators normalized to forward slashes so baseline keys match
-     * across platforms.
+     * across platforms. A path outside the directory throws: a blind
+     * substr would silently produce a wrong key (and a sibling like
+     * /scan/rootbeer under /scan/root a mangled one), quietly corrupting
+     * the baseline instead of surfacing the caller's bug.
      */
     public static function relativePath(string $directory, string $path): string
     {
         $directory = str_replace('\\', '/', $directory);
         $path = str_replace('\\', '/', $path);
+        $base = rtrim($directory, '/');
 
-        return ltrim(substr($path, strlen(rtrim($directory, '/'))), '/');
+        if ($base !== '' && ! str_starts_with($path, $base.'/')) {
+            throw new InvalidArgumentException("{$path} is not inside {$directory}.");
+        }
+
+        return ltrim(substr($path, strlen($base)), '/');
     }
 
     /**

@@ -407,6 +407,19 @@ test('--update-baseline updates a baseline above the scan directory instead of f
         ->and(file_exists(workspace().'/sub/.glimpse-baseline.json'))->toBeFalse();
 });
 
+test('--update-baseline still prunes on an all-failed run but suppresses the success line', function () {
+    createImage('bad.png', 'not an image');
+    writeBaseline(['gone.png' => ['size' => 1, 'xxh128' => 'stale']]);
+
+    $exitCode = Artisan::call('analyze', ['input' => workspace(), '--update-baseline' => true]);
+
+    expect($exitCode)->toBe(1)
+        ->and(Artisan::output())->not->toContain('Baseline updated')
+        ->and(readBaseline()['files'])->toBe([]);
+
+    Http::assertNothingSent();
+});
+
 test('--update-baseline prunes deleted files even when no images remain', function () {
     mkdir(workspace(), 0755, true);
     writeBaseline(['gone.png' => ['size' => 1, 'xxh128' => 'stale']]);

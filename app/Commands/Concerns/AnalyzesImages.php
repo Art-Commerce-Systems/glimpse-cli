@@ -66,8 +66,7 @@ trait AnalyzesImages
      */
     private function baselineRootFor(string $dir): string
     {
-        $real = realpath($dir);
-        $real = $real === false ? rtrim($dir, '/') : $real;
+        $real = $this->canonicalDir($dir);
 
         return BaselineFile::findRoot($real) ?? $real;
     }
@@ -79,10 +78,24 @@ trait AnalyzesImages
      */
     private function baselineKeyPrefix(string $root, string $dir): string
     {
-        $real = realpath($dir);
-        $real = $real === false ? rtrim($dir, '/') : $real;
+        $real = $this->canonicalDir($dir);
 
         return $real === $root ? '' : BaselineFile::relativePath($root, $real).'/';
+    }
+
+    /**
+     * The canonical form of a scan directory: its realpath with separators
+     * normalized to forward slashes, or the given path minus any trailing
+     * slash when it cannot be resolved. Must match findRoot's
+     * normalization exactly, or the root-equality check above misfires.
+     */
+    private function canonicalDir(string $dir): string
+    {
+        $real = realpath($dir);
+
+        return $real === false
+            ? rtrim(str_replace('\\', '/', $dir), '/')
+            : str_replace('\\', '/', $real);
     }
 
     /**

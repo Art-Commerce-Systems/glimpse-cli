@@ -148,7 +148,9 @@ class AnalyzeCommand extends GlimpseCommand
      * time the batch finishes. Failed rows are not recorded: a file that
      * could not be analyzed was not processed and must keep failing
      * `check`. Entries whose file is gone are pruned; the rest carry over
-     * untouched.
+     * untouched. When every file failed the baseline is still saved (the
+     * prune is valid work) but the summary line is suppressed, so a run
+     * that exits with a failure does not end on a success-looking note.
      *
      * @param  list<array<string, mixed>>  $rows
      */
@@ -158,14 +160,20 @@ class AnalyzeCommand extends GlimpseCommand
             return;
         }
 
+        $recorded = 0;
+
         foreach ($rows as $row) {
             if (isset($row['error'])) {
                 continue;
             }
 
+            $recorded++;
             $file = (string) $row['file'];
             $entry = $this->analyzedHashes[$file] ?? null;
 
+            // Every successful row has an analyzedHashes entry; the
+            // record() fallback re-reading the disk is defensive and only
+            // runs if that invariant ever breaks.
             $entry === null
                 ? $baseline->record($prefix.$file, rtrim($root, '/').'/'.$prefix.$file)
                 : $baseline->put($prefix.$file, $entry['size'], $entry['xxh128']);
@@ -174,7 +182,7 @@ class AnalyzeCommand extends GlimpseCommand
         $baseline->prune($root);
         $baseline->save($root);
 
-        if (! $this->option('json')) {
+        if (! $this->option('json') && ($rows === [] || $recorded > 0)) {
             $this->info(sprintf('Baseline updated: %d files (%s).', $baseline->count(), BaselineFile::FILENAME));
         }
     }

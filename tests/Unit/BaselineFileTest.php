@@ -201,6 +201,14 @@ test('relativePath strips the directory prefix and normalizes separators', funct
         ->and(BaselineFile::relativePath('C:\\scan\\root', 'C:\\scan\\root\\sub\\a.png'))->toBe('sub/a.png');
 });
 
+test('relativePath rejects a path outside the directory instead of mangling a key', function (string $path) {
+    BaselineFile::relativePath('/scan/root', $path);
+})->throws(InvalidArgumentException::class, 'is not inside')->with([
+    'unrelated path' => '/elsewhere/a.png',
+    'sibling sharing a prefix' => '/scan/rootbeer/a.png',
+    'the directory itself' => '/scan/root',
+]);
+
 test('load fails loudly on a malformed baseline', function (string $content) {
     mkdir(workspace(), 0755, true);
     file_put_contents(workspace().'/'.BaselineFile::FILENAME, $content);
