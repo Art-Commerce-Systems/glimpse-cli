@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f0ec66ed37a9dd7d6180e700ec359822",
+    "content-hash": "81c09eea3b781fc8879ecfeae275c053",
     "packages": [
         {
             "name": "brick/math",
@@ -429,73 +429,6 @@
                 }
             ],
             "time": "2025-12-03T09:33:47+00:00"
-        },
-        {
-            "name": "glimpseimg/glimpse-php",
-            "version": "v0.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/mathiasgrimm/glimpse-php.git",
-                "reference": "83775b34424c2a4f9b41d99fe4c132633ea17443"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/83775b34424c2a4f9b41d99fe4c132633ea17443",
-                "reference": "83775b34424c2a4f9b41d99fe4c132633ea17443",
-                "shasum": ""
-            },
-            "require": {
-                "guzzlehttp/guzzle": "^7.8",
-                "illuminate/http": "^10.0|^11.0|^12.0",
-                "php": "^8.2"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.29",
-                "pestphp/pest": "^3.8.4|^4.1.2",
-                "phpstan/phpstan": "^2.2"
-            },
-            "suggest": {
-                "ext-gd": "Far tighter analyze size estimates when Imagick is unavailable (SampleProbe)",
-                "ext-imagick": "Far tighter analyze size estimates, plus AVIF and CMYK support (SampleProbe)"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "GlimpseImg\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Mathias Grimm",
-                    "email": "mathiasgrimm@gmail.com"
-                }
-            ],
-            "description": "PHP SDK for glimpseimg.com: convert, optimize, resize, thumbnail, inspect, and analyze images.",
-            "keywords": [
-                "Webp",
-                "api",
-                "avif",
-                "convert",
-                "gif",
-                "glimpse",
-                "image",
-                "jpeg",
-                "jpg",
-                "optimize",
-                "png",
-                "resize",
-                "sdk",
-                "thumbnail"
-            ],
-            "support": {
-                "issues": "https://github.com/mathiasgrimm/glimpse-php/issues",
-                "source": "https://github.com/mathiasgrimm/glimpse-php"
-            },
-            "time": "2026-07-10T22:29:28+00:00"
         },
         {
             "name": "graham-campbell/result-type",
@@ -2655,6 +2588,73 @@
                 }
             ],
             "time": "2024-09-21T08:32:55+00:00"
+        },
+        {
+            "name": "mathiasgrimm/glimpse-php",
+            "version": "v0.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mathiasgrimm/glimpse-php.git",
+                "reference": "83775b34424c2a4f9b41d99fe4c132633ea17443"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/83775b34424c2a4f9b41d99fe4c132633ea17443",
+                "reference": "83775b34424c2a4f9b41d99fe4c132633ea17443",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.8",
+                "illuminate/http": "^10.0|^11.0|^12.0",
+                "php": "^8.2"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.29",
+                "pestphp/pest": "^3.8.4|^4.1.2",
+                "phpstan/phpstan": "^2.2"
+            },
+            "suggest": {
+                "ext-gd": "Far tighter analyze size estimates when Imagick is unavailable (SampleProbe)",
+                "ext-imagick": "Far tighter analyze size estimates, plus AVIF and CMYK support (SampleProbe)"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "GlimpseImg\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Mathias Grimm",
+                    "email": "mathiasgrimm@gmail.com"
+                }
+            ],
+            "description": "PHP SDK for glimpseimg.com: convert, optimize, resize, thumbnail, inspect, and analyze images.",
+            "keywords": [
+                "Webp",
+                "api",
+                "avif",
+                "convert",
+                "gif",
+                "glimpse",
+                "image",
+                "jpeg",
+                "jpg",
+                "optimize",
+                "png",
+                "resize",
+                "sdk",
+                "thumbnail"
+            ],
+            "support": {
+                "issues": "https://github.com/mathiasgrimm/glimpse-php/issues",
+                "source": "https://github.com/mathiasgrimm/glimpse-php"
+            },
+            "time": "2026-07-10T22:29:28+00:00"
         },
         {
             "name": "nesbot/carbon",

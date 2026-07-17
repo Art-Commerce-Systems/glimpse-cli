@@ -16,7 +16,7 @@
     ],
     "require": {
         "php": "^8.2",
-        "glimpseimg/glimpse-php": "^0.2",
+        "mathiasgrimm/glimpse-php": "^0.2",
         "illuminate/http": "^12.17",
         "laravel-zero/framework": "^12.0.2",
         "laravel-zero/phar-updater": "^1.4",
