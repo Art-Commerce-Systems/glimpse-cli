@@ -222,7 +222,7 @@ An image "needs optimization" when the format that saves the most (the same pick
 
 #### .glimpseignore
 
-Drop a `.glimpseignore` file in the directory you scan to exclude paths, using gitignore syntax:
+Drop a `.glimpseignore` file at the project root to exclude paths, using gitignore syntax:
 
 ```gitignore
 # generated assets, not worth optimizing
@@ -232,7 +232,7 @@ public/build/
 !logo.gif
 ```
 
-Patterns are relative to the scanned directory. Negated patterns (`!logo.gif`) re-include files, with the same caveat as git: a file inside an ignored directory cannot be re-included. `analyze <dir>` honors the same file.
+Like the baseline below, the file is read from the directory you run glimpse from, and patterns are relative to it: with the rules above, `glimpse check .` and `glimpse check public/` both skip `public/build/`. Negated patterns (`!logo.gif`) re-include files, with the same caveat as git: a file inside an ignored directory cannot be re-included. `analyze <dir>` honors the same file, and the transform commands honor it too by never recording an ignored file into the baseline.
 
 #### .glimpse-baseline.json
 
@@ -259,13 +259,13 @@ The file lists each image with its size and content hash:
 
 An image is skipped only while its content still matches the recorded entry. Replace a baselined file with a new version and it re-enters the scan automatically. Where `.glimpseignore` says "never look at these paths", the baseline says "these exact file contents are already handled".
 
-Every command reads the baseline from the current working directory, the way composer and phpstan resolve their config: run glimpse from the project root and the baseline there governs the run, with entries keyed relative to it (scanning `assets/` matches keys like `assets/hero.png`). There is no upward search; run glimpse from anywhere else and the baseline simply does not apply. `--update-baseline` writes the baseline to the current directory and requires the scanned directory to be inside it.
+Every command reads the baseline (and `.glimpseignore`) from the current working directory, the way composer and phpstan resolve their config: run glimpse from the project root and the baseline there governs the run, with entries keyed relative to it (scanning `assets/` matches keys like `assets/hero.png`). There is no upward search; run glimpse from anywhere else and the baseline simply does not apply. `--update-baseline` writes the baseline to the current directory and requires the scanned directory to be inside it.
 
 The transform commands keep the baseline current automatically: `convert` and `optimize` record the written output and its source (an in-place conversion that replaced the source also cleans up its old entry), while `resize` and `thumbnail` record only the file they produced. Writing to stdout or to a path outside the working directory records nothing, and a baseline problem never fails a transform that already succeeded; it degrades to a warning on STDERR. The commands never create the file; that is `--update-baseline`'s job. Re-running `analyze <dir> --update-baseline` refreshes changed entries and prunes deleted files.
 
 The baseline only applies to directory scans. Naming a file explicitly (`glimpse analyze photo.png`) always analyzes it. Commit the file so CI and your teammates share the same starting point.
 
-Baseline writes are safe to run in parallel: each save takes an exclusive lock on the file and merges its changes into whatever is there at that moment, so concurrent glimpse commands in the same project do not drop each other's entries.
+Baseline writes never race each other: a run that will write takes an exclusive lock on the file before doing anything else and holds it until the write lands. A second concurrent writer fails fast with a clear error (`analyze --update-baseline`) or degrades to a STDERR warning (the transforms), instead of silently overwriting entries.
 
 ### Info
 

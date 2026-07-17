@@ -19,18 +19,22 @@ final class ImageFinder
      * public/storage) are skipped too: the iterator will not recurse into
      * them, and letting them through yields the link itself as if it were
      * a file. Symlinks to image files still resolve normally. A
-     * .glimpseignore file at the scan root excludes further paths.
+     * .glimpseignore file in the current working directory excludes
+     * further paths, matched by their working-directory-relative path; a
+     * directory scanned from outside the working directory is beyond the
+     * ignore file's reach, so nothing in it is excluded.
      *
      * @return list<string>
      */
     public function find(string $directory): array
     {
         $root = rtrim($directory, '/');
-        $ignore = IgnoreFile::load($root);
+        $prefix = Paths::keyPrefix(Paths::root(), $directory);
+        $ignore = $prefix === null ? IgnoreFile::none() : IgnoreFile::load(Paths::root());
 
         $files = new RecursiveIteratorIterator(new RecursiveCallbackFilterIterator(
             new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS),
-            function (SplFileInfo $file) use ($root, $ignore): bool {
+            function (SplFileInfo $file) use ($root, $prefix, $ignore): bool {
                 if (str_starts_with($file->getFilename(), '.')) {
                     return false;
                 }
@@ -43,7 +47,7 @@ final class ImageFinder
                     return false;
                 }
 
-                $relative = ltrim(substr($file->getPathname(), strlen($root)), '/');
+                $relative = $prefix.ltrim(substr($file->getPathname(), strlen($root)), '/');
 
                 return ! $ignore->ignores($relative, $file->isDir());
             },

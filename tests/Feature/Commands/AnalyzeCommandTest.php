@@ -160,6 +160,7 @@ test('scans a directory recursively and prints a row per image plus a totalizer'
 });
 
 test('directory scans respect .glimpseignore', function () {
+    chdirWorkspace();
     createImage('a.png');
     createImage('ignored/b.png');
 

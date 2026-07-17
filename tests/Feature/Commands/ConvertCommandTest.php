@@ -357,6 +357,60 @@ test('--in-place with an extension change drops the stale source entry', functio
     ]);
 });
 
+test('a source excluded by .glimpseignore is not recorded in the baseline', function () {
+    chdirWorkspace();
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    writeBaseline([]);
+    file_put_contents(workspace().'/.glimpseignore', "photo.png\n");
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
+        ->assertExitCode(0);
+
+    expect(readBaseline()['files'])->toBe([
+        'photo.webp' => baselineEntry(dirname($input).'/photo.webp'),
+    ]);
+});
+
+test('an output excluded by .glimpseignore is not recorded in the baseline', function () {
+    chdirWorkspace();
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    writeBaseline([]);
+    file_put_contents(workspace().'/.glimpseignore', "*.webp\n");
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
+        ->assertExitCode(0);
+
+    expect(readBaseline()['files'])->toBe([
+        'photo.png' => baselineEntry($input),
+    ]);
+});
+
+test('a baseline locked by another process does not fail a conversion that succeeded', function () {
+    chdirWorkspace();
+    Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);
+
+    $input = createImage('photo.png');
+    writeBaseline([]);
+
+    $other = fopen(workspace().'/.glimpse-baseline.json', 'r+');
+    flock($other, LOCK_EX);
+
+    try {
+        $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
+            ->expectsOutputToContain('Wrote')
+            ->assertExitCode(0);
+    } finally {
+        flock($other, LOCK_UN);
+        fclose($other);
+    }
+
+    expect(readBaseline()['files'])->toBe([]);
+});
+
 test('a malformed baseline does not fail a conversion that succeeded', function () {
     chdirWorkspace();
     Http::fake(['*/v1/convert' => Http::response(fakeTransformResponse('webp', 'image/webp'))]);

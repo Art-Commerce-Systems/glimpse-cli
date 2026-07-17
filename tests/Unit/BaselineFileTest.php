@@ -171,76 +171,71 @@ test('save fails loudly when the directory is not writable', function () {
     }
 });
 
-test('save merges entries added by a parallel writer instead of clobbering them', function () {
-    $a = createImage('a.png');
-    writeBaseline(['a.png' => baselineEntry($a)]);
-
-    $mine = BaselineFile::load(workspace());
-
-    $b = createImage('b.png');
-    writeBaseline(['a.png' => baselineEntry($a), 'b.png' => baselineEntry($b)]);
-
-    $mine->record('c.png', createImage('c.png'));
-    $mine->save(workspace());
-
-    expect(array_keys(readBaseline()['files']))->toBe(['a.png', 'b.png', 'c.png'])
-        ->and($mine->count())->toBe(3);
-});
-
-test('save applies a forget even when a parallel writer re-wrote the entry', function () {
-    $a = createImage('a.png');
-    $stale = createImage('stale.png');
-    writeBaseline(['a.png' => baselineEntry($a), 'stale.png' => baselineEntry($stale)]);
-
-    $mine = BaselineFile::load(workspace());
-
-    writeBaseline(['a.png' => baselineEntry($a), 'stale.png' => baselineEntry($stale)]);
-
-    $mine->forget('stale.png');
-    $mine->save(workspace());
-
-    expect(array_keys(readBaseline()['files']))->toBe(['a.png']);
-});
-
-test('a prune lands in the file as forgets, surviving a parallel rewrite', function () {
-    $kept = createImage('kept.png');
-    $gone = createImage('gone.png');
-    writeBaseline(['gone.png' => baselineEntry($gone), 'kept.png' => baselineEntry($kept)]);
-
-    $mine = BaselineFile::load(workspace());
-
-    unlink($gone);
-    $mine->prune(workspace());
-
-    writeBaseline(['gone.png' => ['size' => 1, 'xxh128' => 'stale'], 'kept.png' => baselineEntry($kept)]);
-
-    $mine->save(workspace());
-
-    expect(array_keys(readBaseline()['files']))->toBe(['kept.png']);
-});
-
-test('putting a key again cancels a pending forget for it', function () {
+test('loading for update fails fast when another process holds the lock', function () {
     $path = createImage('photo.png');
     writeBaseline(['photo.png' => baselineEntry($path)]);
 
-    $mine = BaselineFile::load(workspace());
-    $mine->forget('photo.png');
-    $mine->record('photo.png', $path);
-    $mine->save(workspace());
+    $other = fopen(workspace().'/'.BaselineFile::FILENAME, 'r+');
+    flock($other, LOCK_EX);
 
-    expect(array_keys(readBaseline()['files']))->toBe(['photo.png']);
+    try {
+        expect(fn () => BaselineFile::load(workspace(), forUpdate: true))
+            ->toThrow(ApiException::class, 'locked by another glimpse process');
+    } finally {
+        flock($other, LOCK_UN);
+        fclose($other);
+    }
 });
 
-test('save fails loudly when the file turned malformed since load', function () {
+test('loading for update takes the lock first and holds it until save releases it', function () {
+    writeBaseline([]);
+
+    $baseline = BaselineFile::load(workspace(), forUpdate: true);
+    $other = fopen(workspace().'/'.BaselineFile::FILENAME, 'r+');
+
+    expect(flock($other, LOCK_EX | LOCK_NB))->toBeFalse();
+
+    $baseline->record('photo.png', createImage('photo.png'));
+    $baseline->save(workspace());
+
+    expect(flock($other, LOCK_EX | LOCK_NB))->toBeTrue()
+        ->and(array_keys(readBaseline()['files']))->toBe(['photo.png']);
+
+    flock($other, LOCK_UN);
+    fclose($other);
+});
+
+test('a plain load does not lock the file', function () {
     $path = createImage('photo.png');
     writeBaseline(['photo.png' => baselineEntry($path)]);
 
-    $mine = BaselineFile::load(workspace());
+    BaselineFile::load(workspace());
 
-    file_put_contents(workspace().'/'.BaselineFile::FILENAME, '{nope');
+    $other = fopen(workspace().'/'.BaselineFile::FILENAME, 'r+');
 
-    expect(fn () => $mine->save(workspace()))->toThrow(ApiException::class, 'Malformed')
-        ->and(file_get_contents(workspace().'/'.BaselineFile::FILENAME))->toBe('{nope');
+    expect(flock($other, LOCK_EX | LOCK_NB))->toBeTrue();
+
+    flock($other, LOCK_UN);
+    fclose($other);
+});
+
+test('save fails fast when creating a baseline someone else holds locked', function () {
+    mkdir(workspace(), 0755, true);
+
+    $baseline = BaselineFile::load(workspace());
+    $baseline->put('a.png', 1, 'abc');
+
+    file_put_contents(workspace().'/'.BaselineFile::FILENAME, '');
+    $other = fopen(workspace().'/'.BaselineFile::FILENAME, 'r+');
+    flock($other, LOCK_EX);
+
+    try {
+        expect(fn () => $baseline->save(workspace()))
+            ->toThrow(ApiException::class, 'locked by another glimpse process');
+    } finally {
+        flock($other, LOCK_UN);
+        fclose($other);
+    }
 });
 
 test('record skips a file that vanished instead of crashing', function () {
@@ -267,20 +262,6 @@ test('put stores a precomputed entry and forget removes one', function () {
         ->and($baseline->skips('photo.png', $path))->toBeFalse();
 });
 
-test('relativePath strips the directory prefix and normalizes separators', function () {
-    expect(BaselineFile::relativePath('/scan/root', '/scan/root/sub/a.png'))->toBe('sub/a.png')
-        ->and(BaselineFile::relativePath('/scan/root/', '/scan/root/a.png'))->toBe('a.png')
-        ->and(BaselineFile::relativePath('C:\\scan\\root', 'C:\\scan\\root\\sub\\a.png'))->toBe('sub/a.png');
-});
-
-test('relativePath rejects a path outside the directory instead of mangling a key', function (string $path) {
-    BaselineFile::relativePath('/scan/root', $path);
-})->throws(InvalidArgumentException::class, 'is not inside')->with([
-    'unrelated path' => '/elsewhere/a.png',
-    'sibling sharing a prefix' => '/scan/rootbeer/a.png',
-    'the directory itself' => '/scan/root',
-]);
-
 test('load fails loudly on a malformed baseline', function (string $content) {
     mkdir(workspace(), 0755, true);
     file_put_contents(workspace().'/'.BaselineFile::FILENAME, $content);
@@ -293,19 +274,3 @@ test('load fails loudly on a malformed baseline', function (string $content) {
     'entry missing xxh128' => '{"files": {"a.png": {"size": 70}}}',
     'entry with non-integer size' => '{"files": {"a.png": {"size": "70", "xxh128": "abc"}}}',
 ]);
-
-test('root is the current working directory with normalized separators', function () {
-    chdirWorkspace();
-
-    expect(BaselineFile::root())->toBe(str_replace('\\', '/', (string) realpath(workspace())));
-});
-
-test('contains accepts only paths strictly inside the directory', function () {
-    expect(BaselineFile::contains('/scan/root', '/scan/root/a.png'))->toBeTrue()
-        ->and(BaselineFile::contains('/scan/root/', '/scan/root/sub/a.png'))->toBeTrue()
-        ->and(BaselineFile::contains('C:\\scan\\root', 'C:\\scan\\root\\a.png'))->toBeTrue()
-        ->and(BaselineFile::contains('/scan/root', '/scan/root'))->toBeFalse()
-        ->and(BaselineFile::contains('/scan/root', '/scan/rootbeer/a.png'))->toBeFalse()
-        ->and(BaselineFile::contains('/scan/root', '/elsewhere/a.png'))->toBeFalse()
-        ->and(BaselineFile::contains('', '/a.png'))->toBeFalse();
-});

@@ -3,23 +3,28 @@
 namespace App\Commands\Concerns;
 
 use App\Support\BaselineFile;
+use App\Support\IgnoreFile;
+use App\Support\Paths;
 use GlimpseImg\ApiException;
 
 trait UpdatesBaseline
 {
     /**
      * Keep an existing .glimpse-baseline.json current after writing an
-     * output image. The baseline is the one in the current working
-     * directory, the same anchor the scans use: it gains an entry for the
-     * written output, plus one for the source when the command
-     * transformed the source itself (convert/optimize) and it lives under
-     * the same root. An in-place write that deleted the source drops its
-     * stale entry. A stdout write touches nothing on disk, and an output
-     * outside the working directory cannot have a root-relative key, so
-     * both record nothing. A baseline is never created here; that is
-     * `analyze --update-baseline`'s job. Baseline problems must never
-     * fail a transform that already succeeded, so errors are reported as
-     * a warning on STDERR instead of failing the command.
+     * output image. The baseline and the .glimpseignore are the ones in
+     * the current working directory, the same anchor the scans use: the
+     * baseline gains an entry for the written output, plus one for the
+     * source when the command transformed the source itself
+     * (convert/optimize) and it lives under the same root. An in-place
+     * write that deleted the source drops its stale entry. A stdout write
+     * touches nothing on disk, an output outside the working directory
+     * cannot have a root-relative key, and a file the ignore rules
+     * exclude will never be scanned, so none of those record anything. A
+     * baseline is never created here; that is `analyze
+     * --update-baseline`'s job. Baseline problems must never fail a
+     * transform that already succeeded, so errors (including a baseline
+     * locked by another glimpse process) are reported as a warning on
+     * STDERR instead of failing the command.
      */
     protected function recordInBaseline(string $input, string $outputPath, bool $recordSource = true): void
     {
@@ -27,7 +32,7 @@ trait UpdatesBaseline
             return;
         }
 
-        $root = BaselineFile::root();
+        $root = Paths::root();
 
         if (! is_file($root.'/'.BaselineFile::FILENAME)) {
             return;
@@ -41,17 +46,21 @@ trait UpdatesBaseline
 
         $output = $outputDir.'/'.basename($outputPath);
 
-        if (! BaselineFile::contains($root, $output)) {
+        if (! Paths::contains($root, $output)) {
             return;
         }
 
         try {
-            $baseline = BaselineFile::load($root);
+            $ignore = IgnoreFile::load($root);
+            $baseline = BaselineFile::load($root, forUpdate: true);
+            $relative = Paths::relativePath($root, $output);
 
-            $baseline->record(BaselineFile::relativePath($root, $output), $output);
+            if (! $ignore->ignores($relative)) {
+                $baseline->record($relative, $output);
+            }
 
             if ($recordSource && $input !== '-') {
-                $this->recordSource($baseline, $root, $input, $output);
+                $this->recordSource($baseline, $ignore, $root, $input, $output);
             }
 
             $baseline->save($root);
@@ -65,9 +74,9 @@ trait UpdatesBaseline
      * an in-place write already deleted it. The directory part is
      * canonicalized but the file name is kept as given, so a symlinked
      * image keeps the key a directory scan would produce for it. A source
-     * outside the root records nothing.
+     * outside the root or excluded by the ignore rules records nothing.
      */
-    private function recordSource(BaselineFile $baseline, string $root, string $input, string $output): void
+    private function recordSource(BaselineFile $baseline, IgnoreFile $ignore, string $root, string $input, string $output): void
     {
         $sourceDir = realpath(dirname($input));
 
@@ -77,11 +86,15 @@ trait UpdatesBaseline
 
         $source = $sourceDir.'/'.basename($input);
 
-        if ($source === $output || ! BaselineFile::contains($root, $source)) {
+        if ($source === $output || ! Paths::contains($root, $source)) {
             return;
         }
 
-        $relative = BaselineFile::relativePath($root, $source);
+        $relative = Paths::relativePath($root, $source);
+
+        if ($ignore->ignores($relative)) {
+            return;
+        }
 
         is_file($source) ? $baseline->record($relative, $source) : $baseline->forget($relative);
     }

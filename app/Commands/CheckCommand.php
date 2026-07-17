@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Commands\Concerns\AnalyzesImages;
 use App\Support\BaselineFile;
 use App\Support\ImageFinder;
+use App\Support\Paths;
 use GlimpseImg\ApiException;
 use GlimpseImg\Client;
 use GlimpseImg\SampleProbe;
@@ -31,7 +32,7 @@ class CheckCommand extends GlimpseCommand
             $skipped = 0;
 
             if (is_dir($input)) {
-                $root = BaselineFile::root();
+                $root = Paths::root();
                 [$files, $skipped] = $this->partitionByBaseline(BaselineFile::load($root), $root, $input, $files);
             }
 

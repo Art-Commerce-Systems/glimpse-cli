@@ -5,8 +5,9 @@ namespace App\Support;
 use Symfony\Component\Finder\Gitignore;
 
 /**
- * A .glimpseignore file: gitignore syntax, one file at the scan root.
- * Negated patterns (!keep.png) work, with git's caveat that a file
+ * A .glimpseignore file: gitignore syntax, one file in the directory
+ * glimpse is run from, with patterns matched against paths relative to
+ * it. Negated patterns (!keep.png) work, with git's caveat that a file
  * inside an ignored directory cannot be re-included, because ignored
  * directories are pruned during the scan.
  */

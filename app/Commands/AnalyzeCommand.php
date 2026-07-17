@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Commands\Concerns\AnalyzesImages;
 use App\Support\BaselineFile;
 use App\Support\ImageFinder;
+use App\Support\Paths;
 use GlimpseImg\ApiException;
 use GlimpseImg\Client;
 use GlimpseImg\ImageFormat;
@@ -88,13 +89,14 @@ class AnalyzeCommand extends GlimpseCommand
             throw new ApiException("No image files found in {$dir}.");
         }
 
-        $root = BaselineFile::root();
-        $baseline = BaselineFile::load($root);
-        $prefix = $this->baselineKeyPrefix($root, $dir);
+        $root = Paths::root();
+        $prefix = Paths::keyPrefix($root, $dir);
 
         if ($this->option('update-baseline') && $prefix === null) {
             throw new ApiException('--update-baseline requires the scanned directory to be inside the current working directory.');
         }
+
+        $baseline = BaselineFile::load($root, forUpdate: (bool) $this->option('update-baseline'));
 
         if ($found === []) {
             if ($this->option('json')) {

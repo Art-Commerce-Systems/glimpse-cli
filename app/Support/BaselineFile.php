@@ -3,54 +3,41 @@
 namespace App\Support;
 
 use GlimpseImg\ApiException;
-use InvalidArgumentException;
 use stdClass;
 
 /**
  * A .glimpse-baseline.json file: a JSON list of already-processed files in
  * the directory glimpse is run from, so analyze and check skip them.
- * Entries match on relative
- * path plus size plus xxh128 content hash; a file whose content changed
- * re-enters the scan. The hash is for change detection, not security, so
- * a fast non-cryptographic digest is the right tool.
+ * Entries match on relative path plus size plus xxh128 content hash; a
+ * file whose content changed re-enters the scan. The hash is for change
+ * detection, not security, so a fast non-cryptographic digest is the
+ * right tool.
  *
- * Concurrency: reads take a shared flock and saves take an exclusive one.
- * A save replays this instance's mutations onto whatever is in the file at
- * that moment instead of writing back its loaded snapshot, so parallel
- * glimpse runs merge their entries rather than clobbering each other.
+ * Concurrency: a run that will write loads with $forUpdate, which takes a
+ * non-blocking exclusive lock on the file up front and holds it through
+ * save(). A second concurrent writer fails fast with a clear error
+ * instead of silently clobbering entries. Plain loads read without
+ * locking.
  */
 final class BaselineFile
 {
     public const FILENAME = '.glimpse-baseline.json';
 
     /**
-     * Entries put since load, replayed onto the file's current contents
-     * at save time.
-     *
-     * @var array<string, array{size: int, xxh128: string}>
-     */
-    private array $puts = [];
-
-    /**
-     * Keys forgotten since load, removed from the file's current contents
-     * at save time.
-     *
-     * @var array<string, true>
-     */
-    private array $forgets = [];
-
-    /**
      * @param  array<string, array{size: int, xxh128: string}>  $files
+     * @param  resource|null  $handle  Locked handle held from load until save when loaded for update.
      */
-    private function __construct(private array $files) {}
+    private function __construct(private array $files, private $handle = null) {}
 
     /**
      * Load the baseline at the directory. A missing or empty file is an
      * empty baseline; an unreadable or malformed one fails loudly so a
      * permission problem or a typo never turns into a silently
-     * un-baselined (or fully skipped) scan.
+     * un-baselined (or fully skipped) scan. Pass $forUpdate when the
+     * baseline will be saved: the first thing it does is try to lock the
+     * file, failing fast when another process already holds it.
      */
-    public static function load(string $directory): self
+    public static function load(string $directory, bool $forUpdate = false): self
     {
         $path = rtrim($directory, '/').'/'.self::FILENAME;
 
@@ -58,21 +45,41 @@ final class BaselineFile
             return new self([]);
         }
 
-        $handle = @fopen($path, 'r');
+        if (! $forUpdate) {
+            $content = @file_get_contents($path);
+
+            if ($content === false) {
+                throw new ApiException("Could not read {$path}.");
+            }
+
+            $content = trim($content);
+
+            return new self($content === '' ? [] : self::parse($content, $path));
+        }
+
+        $handle = @fopen($path, 'r+');
 
         if ($handle === false) {
             throw new ApiException("Could not read {$path}.");
         }
 
-        try {
-            flock($handle, LOCK_SH);
-            $content = trim((string) stream_get_contents($handle));
-        } finally {
-            flock($handle, LOCK_UN);
+        if (! flock($handle, LOCK_EX | LOCK_NB)) {
             fclose($handle);
+
+            throw new ApiException("{$path} is locked by another glimpse process.");
         }
 
-        return new self($content === '' ? [] : self::parse($content, $path));
+        try {
+            $content = trim((string) stream_get_contents($handle));
+            $files = $content === '' ? [] : self::parse($content, $path);
+        } catch (ApiException $exception) {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+
+            throw $exception;
+        }
+
+        return new self($files, $handle);
     }
 
     /**
@@ -99,52 +106,6 @@ final class BaselineFile
         }
 
         return $files;
-    }
-
-    /**
-     * The directory whose baseline governs this run: always the current
-     * working directory, the way composer, phpunit, and phpstan resolve
-     * their config. No upward search, so a baseline elsewhere can never
-     * capture a scan or a write; run glimpse from the project root to use
-     * the project's baseline.
-     */
-    public static function root(): string
-    {
-        return rtrim(str_replace('\\', '/', (string) getcwd()), '/');
-    }
-
-    /**
-     * Whether the path lies strictly inside the directory. Both are
-     * expected to be canonical absolute paths; separators are normalized
-     * before comparing.
-     */
-    public static function contains(string $directory, string $path): bool
-    {
-        $directory = rtrim(str_replace('\\', '/', $directory), '/');
-        $path = str_replace('\\', '/', $path);
-
-        return $directory !== '' && str_starts_with($path, $directory.'/');
-    }
-
-    /**
-     * The path of a file relative to a directory that contains it, with
-     * separators normalized to forward slashes so baseline keys match
-     * across platforms. A path outside the directory throws: a blind
-     * substr would silently produce a wrong key (and a sibling like
-     * /scan/rootbeer under /scan/root a mangled one), quietly corrupting
-     * the baseline instead of surfacing the caller's bug.
-     */
-    public static function relativePath(string $directory, string $path): string
-    {
-        $directory = str_replace('\\', '/', $directory);
-        $path = str_replace('\\', '/', $path);
-        $base = rtrim($directory, '/');
-
-        if ($base !== '' && ! str_starts_with($path, $base.'/')) {
-            throw new InvalidArgumentException("{$path} is not inside {$directory}.");
-        }
-
-        return ltrim(substr($path, strlen($base)), '/');
     }
 
     /**
@@ -192,20 +153,15 @@ final class BaselineFile
     public function put(string $relative, int $size, string $hash): void
     {
         $this->files[$relative] = ['size' => $size, 'xxh128' => $hash];
-        $this->puts[$relative] = $this->files[$relative];
-        unset($this->forgets[$relative]);
     }
 
     public function forget(string $relative): void
     {
-        unset($this->files[$relative], $this->puts[$relative]);
-        $this->forgets[$relative] = true;
+        unset($this->files[$relative]);
     }
 
     /**
-     * Drop entries whose file no longer exists under the directory. Goes
-     * through forget() so the removals also land in the file at save
-     * time, not just in this instance's snapshot.
+     * Drop entries whose file no longer exists under the directory.
      */
     public function prune(string $directory): void
     {
@@ -213,7 +169,7 @@ final class BaselineFile
 
         foreach (array_keys($this->files) as $relative) {
             if (! is_file($root.'/'.$relative)) {
-                $this->forget($relative);
+                unset($this->files[$relative]);
             }
         }
     }
@@ -224,63 +180,48 @@ final class BaselineFile
     }
 
     /**
-     * Write the baseline out under an exclusive lock, replaying this
-     * instance's puts and forgets onto the file's current contents so a
-     * parallel run's entries survive. Fails loudly instead of quietly
-     * losing entries: an unencodable filename (caught before the file is
-     * opened, so a failed save never creates or truncates one), a
-     * malformed file, or a failed write must never replace a healthy
-     * committed baseline with garbage.
+     * Write the baseline out through the lock taken at load time, or, when
+     * the file did not exist yet, through a fresh one taken now. Fails
+     * loudly instead of quietly losing entries: an unencodable filename
+     * (caught before the file is opened, so a failed save never creates
+     * or truncates one), a held lock, or a failed write must never
+     * replace a healthy committed baseline with garbage.
      */
     public function save(string $directory): void
     {
+        ksort($this->files);
+
         $path = rtrim($directory, '/').'/'.self::FILENAME;
 
-        if (json_encode($this->files) === false) {
+        $json = json_encode(['files' => $this->files === [] ? new stdClass : $this->files], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+
+        if ($json === false) {
             throw new ApiException("Could not encode {$path}: ".json_last_error_msg().'. Is a filename not valid UTF-8?');
         }
 
-        $handle = @fopen($path, 'c+');
+        $handle = $this->handle ?? @fopen($path, 'c+');
 
         if ($handle === false) {
             throw new ApiException("Could not write {$path}.");
         }
 
+        if ($this->handle === null && ! flock($handle, LOCK_EX | LOCK_NB)) {
+            fclose($handle);
+
+            throw new ApiException("{$path} is locked by another glimpse process.");
+        }
+
         try {
-            flock($handle, LOCK_EX);
-
-            $current = trim((string) stream_get_contents($handle));
-            $merged = $current === '' ? [] : self::parse($current, $path);
-
-            foreach (array_keys($this->forgets) as $relative) {
-                unset($merged[$relative]);
-            }
-
-            foreach ($this->puts as $relative => $entry) {
-                $merged[$relative] = $entry;
-            }
-
-            ksort($merged);
-
-            $json = json_encode(['files' => $merged === [] ? new stdClass : $merged], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-
-            if ($json === false) {
-                throw new ApiException("Could not encode {$path}: ".json_last_error_msg().'. Is a filename not valid UTF-8?');
-            }
-
             rewind($handle);
             $written = fwrite($handle, $json.PHP_EOL);
 
             if ($written === false || ! ftruncate($handle, $written)) {
                 throw new ApiException("Could not write {$path}.");
             }
-
-            $this->files = $merged;
-            $this->puts = [];
-            $this->forgets = [];
         } finally {
             flock($handle, LOCK_UN);
             fclose($handle);
+            $this->handle = null;
         }
     }
 }

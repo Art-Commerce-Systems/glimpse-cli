@@ -54,6 +54,7 @@ test('returns an empty list for a directory with no images', function () {
 });
 
 test('excludes files matching .glimpseignore patterns', function () {
+    chdirWorkspace();
     createImage('photo.png');
     createImage('logo.webp');
     createImage('albums/cover.webp');
@@ -64,6 +65,7 @@ test('excludes files matching .glimpseignore patterns', function () {
 });
 
 test('prunes directories matching .glimpseignore patterns', function () {
+    chdirWorkspace();
     createImage('photo.png');
     createImage('vendor/package/logo.png');
 
@@ -73,12 +75,31 @@ test('prunes directories matching .glimpseignore patterns', function () {
 });
 
 test('negated .glimpseignore patterns re-include files', function () {
+    chdirWorkspace();
     createImage('logo.webp');
     createImage('albums/cover.webp');
 
     file_put_contents(workspace().'/.glimpseignore', "*.webp\n!albums/cover.webp\n");
 
     expect((new ImageFinder)->find(workspace()))->toBe([workspace().'/albums/cover.webp']);
+});
+
+test('the cwd ignore file governs a subdirectory scan with cwd-relative patterns', function () {
+    chdirWorkspace();
+    createImage('assets/a.png');
+    createImage('assets/generated/b.png');
+
+    file_put_contents(workspace().'/.glimpseignore', "assets/generated/\n");
+
+    expect((new ImageFinder)->find(workspace().'/assets'))->toBe([workspace().'/assets/a.png']);
+});
+
+test('an ignore file in the scanned directory is not consulted when running from elsewhere', function () {
+    createImage('photo.png');
+    file_put_contents(workspace().'/.glimpseignore', "*.png\n");
+    chdirWorkspace(test()->configHome.'/elsewhere');
+
+    expect((new ImageFinder)->find(workspace()))->toBe([workspace().'/photo.png']);
 });
 
 test('scans normally without a .glimpseignore file', function () {

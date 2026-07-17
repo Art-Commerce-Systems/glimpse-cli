@@ -160,6 +160,7 @@ test('passes when the directory contains no images', function () {
 });
 
 test('passes when .glimpseignore excludes every offender', function () {
+    chdirWorkspace();
     fakeAnalyze();
     createImage('photo.png');
     file_put_contents(workspace().'/.glimpseignore', "*.png\n");

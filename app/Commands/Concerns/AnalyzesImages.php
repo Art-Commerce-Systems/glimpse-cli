@@ -3,6 +3,7 @@
 namespace App\Commands\Concerns;
 
 use App\Support\BaselineFile;
+use App\Support\Paths;
 use GlimpseImg\ApiException;
 use GlimpseImg\AuthException;
 use GlimpseImg\Client;
@@ -31,7 +32,7 @@ trait AnalyzesImages
      */
     private function analyzeFile(Client $client, SampleProbe $probe, string $dir, string $path, ?ImageFormat $target, ?int $quality): array
     {
-        $file = BaselineFile::relativePath($dir, $path);
+        $file = Paths::relativePath($dir, $path);
 
         try {
             $bytes = $this->readImage($path, limitBytes: false);
@@ -60,41 +61,6 @@ trait AnalyzesImages
     }
 
     /**
-     * The key prefix that maps scan-relative paths to root-relative
-     * baseline keys, e.g. 'assets/' when scanning <root>/assets. Empty
-     * when the scan directory is the root itself, null when it lies
-     * outside the root: its files cannot have root-relative keys, so the
-     * baseline neither skips nor records them.
-     */
-    private function baselineKeyPrefix(string $root, string $dir): ?string
-    {
-        $real = $this->canonicalDir($dir);
-
-        if ($real === $root) {
-            return '';
-        }
-
-        return BaselineFile::contains($root, $real)
-            ? BaselineFile::relativePath($root, $real).'/'
-            : null;
-    }
-
-    /**
-     * The canonical form of a scan directory: its realpath with separators
-     * normalized to forward slashes, or the given path minus any trailing
-     * slash when it cannot be resolved. Must match BaselineFile::root()'s
-     * normalization exactly, or the root-equality check above misfires.
-     */
-    private function canonicalDir(string $dir): string
-    {
-        $real = realpath($dir);
-
-        return $real === false
-            ? rtrim(str_replace('\\', '/', $dir), '/')
-            : str_replace('\\', '/', $real);
-    }
-
-    /**
      * Split the found files into the ones still to analyze and the count
      * covered by the baseline. A scan directory outside the root is left
      * untouched: no file gets skipped.
@@ -104,7 +70,7 @@ trait AnalyzesImages
      */
     private function partitionByBaseline(BaselineFile $baseline, string $root, string $dir, array $files): array
     {
-        $prefix = $this->baselineKeyPrefix($root, $dir);
+        $prefix = Paths::keyPrefix($root, $dir);
 
         if ($prefix === null) {
             return [$files, 0];
@@ -112,7 +78,7 @@ trait AnalyzesImages
 
         $remaining = array_values(array_filter(
             $files,
-            fn (string $path) => ! $baseline->skips($prefix.BaselineFile::relativePath($dir, $path), $path),
+            fn (string $path) => ! $baseline->skips($prefix.Paths::relativePath($dir, $path), $path),
         ));
 
         return [$remaining, count($files) - count($remaining)];
