@@ -230,23 +230,44 @@ test('a failed save releases the lock taken at load', function () {
     fclose($other);
 });
 
-test('save fails fast when creating a baseline someone else holds locked', function () {
+test('save fails fast when another process created the baseline since load', function () {
     mkdir(workspace(), 0755, true);
 
     $baseline = BaselineFile::load(workspace());
     $baseline->put('a.png', 1, 'abc', 'analyze');
 
-    file_put_contents(workspace().'/'.BaselineFile::FILENAME, '');
-    $other = fopen(workspace().'/'.BaselineFile::FILENAME, 'r+');
-    flock($other, LOCK_EX);
+    writeBaseline([]);
 
-    try {
-        expect(fn () => $baseline->save(workspace()))
-            ->toThrow(ApiException::class, 'locked by another glimpse process');
-    } finally {
-        flock($other, LOCK_UN);
-        fclose($other);
-    }
+    expect(fn () => $baseline->save(workspace()))
+        ->toThrow(ApiException::class, 'created by another glimpse process');
+});
+
+test('concurrent first-time creation fails loudly instead of losing entries', function () {
+    $a = createImage('a.png');
+    $b = createImage('b.png');
+
+    $first = BaselineFile::load(workspace(), forUpdate: true);
+    $second = BaselineFile::load(workspace(), forUpdate: true);
+
+    $first->record('a.png', $a, 'analyze');
+    $first->save(workspace());
+
+    $second->record('b.png', $b, 'analyze');
+
+    expect(fn () => $second->save(workspace()))
+        ->toThrow(ApiException::class, 'created by another glimpse process')
+        ->and(array_keys(readBaseline()['files']))->toBe(['a.png']);
+});
+
+test('save leaves no temporary or stray files behind', function () {
+    writeBaseline([]);
+
+    $baseline = BaselineFile::load(workspace(), forUpdate: true);
+    $baseline->record('photo.png', createImage('photo.png'), 'analyze');
+    $baseline->save(workspace());
+
+    expect(glob(workspace().'/'.BaselineFile::FILENAME.'.*'))->toBe([])
+        ->and(array_keys(readBaseline()['files']))->toBe(['photo.png']);
 });
 
 test('record skips a file that vanished instead of crashing', function () {

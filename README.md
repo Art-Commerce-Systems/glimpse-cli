@@ -277,7 +277,7 @@ The transform commands keep the baseline current automatically: `convert` and `o
 
 The baseline only applies to directory scans. Naming a file explicitly (`glimpse analyze photo.png`) always analyzes it. Commit the file so CI and your teammates share the same starting point.
 
-Baseline writes never race each other: a run that will write takes an exclusive lock on the file before doing anything else and holds it until the write lands. A second concurrent writer fails fast with a clear error (`analyze --update-baseline`) or degrades to a STDERR warning (the transforms), instead of silently overwriting entries.
+Baseline writes never race each other: a run that will write takes an exclusive lock on the file before doing anything else, creating it is exclusive too, and the content lands in a temporary file swapped atomically into place. A second concurrent writer fails fast with a clear error (`analyze --update-baseline`) or degrades to a STDERR warning (the transforms) instead of silently overwriting entries, readers never observe a half-written file, and a failed write leaves the previous baseline untouched.
 
 ### Info
 

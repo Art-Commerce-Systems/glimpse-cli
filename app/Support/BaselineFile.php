@@ -19,9 +19,12 @@ use stdClass;
  *
  * Concurrency: a run that will write loads with $forUpdate, which takes a
  * non-blocking exclusive lock on the file up front and holds it through
- * save(). A second concurrent writer fails fast with a clear error
- * instead of silently clobbering entries. Plain loads read without
- * locking.
+ * save(). Creating the file is exclusive too, so two first-time
+ * generators cannot silently overwrite each other; the loser of any race
+ * fails fast with a clear error. Writes land in a private temporary file
+ * swapped into place with an atomic rename, so plain (unlocked) reads
+ * never observe a half-written baseline and a failed or short write
+ * leaves the previous file untouched.
  */
 final class BaselineFile
 {
@@ -87,6 +90,17 @@ final class BaselineFile
         }
 
         try {
+            // Saves swap the path to a new inode; if that happened between
+            // our open and the flock, this lock is on the orphaned old
+            // file and another writer could hold the real one.
+            clearstatcache(true, $path);
+            $onDisk = @stat($path);
+            $held = fstat($handle);
+
+            if ($onDisk === false || $held === false || $onDisk['ino'] !== $held['ino']) {
+                throw new ApiException("{$path} is locked by another glimpse process.");
+            }
+
             $content = trim((string) stream_get_contents($handle));
             $files = $content === '' ? [] : self::parse($content, $path);
         } catch (ApiException $exception) {
@@ -198,13 +212,16 @@ final class BaselineFile
     }
 
     /**
-     * Write the baseline out through the lock taken at load time, or, when
-     * the file did not exist yet, through a fresh one taken now. Fails
-     * loudly instead of quietly losing entries: an unencodable filename
-     * (caught before the file is opened, so a failed save never creates
-     * or truncates one), a held lock, or a failed or short write must
-     * never quietly replace a healthy committed baseline with garbage.
-     * Whatever happens, a lock taken at load time is released here.
+     * Write the baseline out under the lock taken at load time, or, when
+     * the file did not exist yet, by creating it exclusively now, so two
+     * first-time generators cannot silently overwrite each other. The
+     * content lands in a temporary file swapped into place atomically.
+     * Fails loudly instead of quietly losing entries: an unencodable
+     * filename (caught before any file is touched), a lost creation race,
+     * a held lock, or a failed or short write must never quietly replace
+     * a healthy committed baseline with garbage. Whatever happens, a lock
+     * taken at load time is released here and a failed creation leaves no
+     * file behind.
      */
     public function save(string $directory): void
     {
@@ -212,6 +229,7 @@ final class BaselineFile
 
         $path = rtrim($directory, '/').'/'.self::FILENAME;
         $handle = $this->handle;
+        $created = false;
 
         try {
             $json = json_encode([
@@ -224,26 +242,29 @@ final class BaselineFile
             }
 
             if ($handle === null) {
-                $opened = @fopen($path, 'c+');
+                $opened = @fopen($path, 'x+');
 
                 if ($opened === false) {
-                    throw new ApiException("Could not write {$path}.");
+                    throw new ApiException(is_file($path)
+                        ? "{$path} was created by another glimpse process since this run started; re-run to update it."
+                        : "Could not write {$path}.");
                 }
 
                 $handle = $opened;
+                $created = true;
 
                 if (! flock($handle, LOCK_EX | LOCK_NB)) {
                     throw new ApiException("{$path} is locked by another glimpse process.");
                 }
             }
 
-            $data = $json.PHP_EOL;
-            rewind($handle);
-            $written = fwrite($handle, $data);
-
-            if ($written !== strlen($data) || ! ftruncate($handle, $written)) {
-                throw new ApiException("Could not write {$path}.");
+            self::writeAtomically($path, $json.PHP_EOL);
+        } catch (ApiException $exception) {
+            if ($created) {
+                @unlink($path);
             }
+
+            throw $exception;
         } finally {
             if ($handle !== null) {
                 flock($handle, LOCK_UN);
@@ -251,6 +272,32 @@ final class BaselineFile
             }
 
             $this->handle = null;
+        }
+    }
+
+    /**
+     * Write the content to a private temporary file next to the target
+     * and swap it into place with an atomic rename, so a reader never
+     * observes a half-written baseline and a failed or short write leaves
+     * the previous file untouched. The caller holds the lock that
+     * serializes writers.
+     */
+    private static function writeAtomically(string $path, string $data): void
+    {
+        $tmp = $path.'.'.getmypid().'.tmp';
+
+        try {
+            if (@file_put_contents($tmp, $data) !== strlen($data)) {
+                throw new ApiException("Could not write {$path}.");
+            }
+
+            if (! @rename($tmp, $path)) {
+                throw new ApiException("Could not write {$path}.");
+            }
+        } finally {
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
         }
     }
 }
