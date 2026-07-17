@@ -83,12 +83,6 @@ class AnalyzeCommand extends GlimpseCommand
 
     private function handleDirectory(Client $client, SampleProbe $probe, string $dir, ?ImageFormat $target, ?int $quality): int
     {
-        $found = (new ImageFinder)->find($dir);
-
-        if ($found === [] && ! $this->option('update-baseline')) {
-            throw new ApiException("No image files found in {$dir}.");
-        }
-
         $root = Paths::root();
         $prefix = Paths::keyPrefix($root, $dir);
 
@@ -97,6 +91,11 @@ class AnalyzeCommand extends GlimpseCommand
         }
 
         $baseline = BaselineFile::load($root, forUpdate: (bool) $this->option('update-baseline'));
+        $found = (new ImageFinder)->find($dir);
+
+        if ($found === [] && ! $this->option('update-baseline')) {
+            throw new ApiException("No image files found in {$dir}.");
+        }
 
         if ($found === []) {
             if ($this->option('json')) {

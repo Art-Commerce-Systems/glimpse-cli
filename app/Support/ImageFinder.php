@@ -47,7 +47,7 @@ final class ImageFinder
                     return false;
                 }
 
-                $relative = $prefix.ltrim(substr($file->getPathname(), strlen($root)), '/');
+                $relative = $prefix.ltrim(substr($file->getPathname(), strlen($root)), '/\\');
 
                 return ! $ignore->ignores($relative, $file->isDir());
             },

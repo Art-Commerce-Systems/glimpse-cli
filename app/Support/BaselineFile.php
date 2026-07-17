@@ -202,46 +202,54 @@ final class BaselineFile
      * the file did not exist yet, through a fresh one taken now. Fails
      * loudly instead of quietly losing entries: an unencodable filename
      * (caught before the file is opened, so a failed save never creates
-     * or truncates one), a held lock, or a failed write must never
-     * replace a healthy committed baseline with garbage.
+     * or truncates one), a held lock, or a failed or short write must
+     * never quietly replace a healthy committed baseline with garbage.
+     * Whatever happens, a lock taken at load time is released here.
      */
     public function save(string $directory): void
     {
         ksort($this->files);
 
         $path = rtrim($directory, '/').'/'.self::FILENAME;
-
-        $json = json_encode([
-            '_readme' => self::README,
-            'files' => $this->files === [] ? new stdClass : $this->files,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
-
-        if ($json === false) {
-            throw new ApiException("Could not encode {$path}: ".json_last_error_msg().'. Is a filename not valid UTF-8?');
-        }
-
-        $handle = $this->handle ?? @fopen($path, 'c+');
-
-        if ($handle === false) {
-            throw new ApiException("Could not write {$path}.");
-        }
-
-        if ($this->handle === null && ! flock($handle, LOCK_EX | LOCK_NB)) {
-            fclose($handle);
-
-            throw new ApiException("{$path} is locked by another glimpse process.");
-        }
+        $handle = $this->handle;
 
         try {
-            rewind($handle);
-            $written = fwrite($handle, $json.PHP_EOL);
+            $json = json_encode([
+                '_readme' => self::README,
+                'files' => $this->files === [] ? new stdClass : $this->files,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
 
-            if ($written === false || ! ftruncate($handle, $written)) {
+            if ($json === false) {
+                throw new ApiException("Could not encode {$path}: ".json_last_error_msg().'. Is a filename not valid UTF-8?');
+            }
+
+            if ($handle === null) {
+                $opened = @fopen($path, 'c+');
+
+                if ($opened === false) {
+                    throw new ApiException("Could not write {$path}.");
+                }
+
+                $handle = $opened;
+
+                if (! flock($handle, LOCK_EX | LOCK_NB)) {
+                    throw new ApiException("{$path} is locked by another glimpse process.");
+                }
+            }
+
+            $data = $json.PHP_EOL;
+            rewind($handle);
+            $written = fwrite($handle, $data);
+
+            if ($written !== strlen($data) || ! ftruncate($handle, $written)) {
                 throw new ApiException("Could not write {$path}.");
             }
         } finally {
-            flock($handle, LOCK_UN);
-            fclose($handle);
+            if ($handle !== null) {
+                flock($handle, LOCK_UN);
+                fclose($handle);
+            }
+
             $this->handle = null;
         }
     }

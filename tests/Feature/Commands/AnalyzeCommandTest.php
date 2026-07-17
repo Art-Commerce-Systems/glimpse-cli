@@ -390,6 +390,17 @@ test('a malformed baseline fails loudly before any HTTP request', function () {
     Http::assertNothingSent();
 });
 
+test('a malformed baseline fails loudly even when the directory has no images', function () {
+    chdirWorkspace();
+    file_put_contents(workspace().'/.glimpse-baseline.json', '{nope');
+
+    $this->artisan('analyze', ['input' => workspace()])
+        ->expectsOutputToContain('Malformed')
+        ->assertExitCode(1);
+
+    Http::assertNothingSent();
+});
+
 test('the cwd baseline governs a subdirectory scan', function () {
     chdirWorkspace();
     $covered = createImage('sub/covered.png');

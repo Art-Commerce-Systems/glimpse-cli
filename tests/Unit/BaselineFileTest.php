@@ -214,6 +214,22 @@ test('a plain load does not lock the file', function () {
     fclose($other);
 });
 
+test('a failed save releases the lock taken at load', function () {
+    writeBaseline([]);
+
+    $baseline = BaselineFile::load(workspace(), forUpdate: true);
+    $baseline->put("caf\xE9.png", 1, 'abc', 'analyze');
+
+    expect(fn () => $baseline->save(workspace()))->toThrow(ApiException::class, 'Could not encode');
+
+    $other = fopen(workspace().'/'.BaselineFile::FILENAME, 'r+');
+
+    expect(flock($other, LOCK_EX | LOCK_NB))->toBeTrue();
+
+    flock($other, LOCK_UN);
+    fclose($other);
+});
+
 test('save fails fast when creating a baseline someone else holds locked', function () {
     mkdir(workspace(), 0755, true);
 
