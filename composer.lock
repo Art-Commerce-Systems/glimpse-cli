@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "d9169e51a13a2eb64187293cee560ed2",
+    "content-hash": "7f2b0cbeb3dca0d01e805ebec5d39662",
     "packages": [
         {
             "name": "brick/math",
@@ -2591,16 +2591,16 @@
         },
         {
             "name": "mathiasgrimm/glimpse-php",
-            "version": "v1.0.1",
+            "version": "v2.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mathiasgrimm/glimpse-php.git",
-                "reference": "27c70f347ff06dff548a5d15078c6a0969db6d2c"
+                "reference": "1bd18313f3a001152eb7cad168e22537f4c9dbe8"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/27c70f347ff06dff548a5d15078c6a0969db6d2c",
-                "reference": "27c70f347ff06dff548a5d15078c6a0969db6d2c",
+                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/1bd18313f3a001152eb7cad168e22537f4c9dbe8",
+                "reference": "1bd18313f3a001152eb7cad168e22537f4c9dbe8",
                 "shasum": ""
             },
             "require": {
@@ -2654,7 +2654,7 @@
                 "issues": "https://github.com/mathiasgrimm/glimpse-php/issues",
                 "source": "https://github.com/mathiasgrimm/glimpse-php"
             },
-            "time": "2026-07-17T21:18:19+00:00"
+            "time": "2026-07-19T01:21:39+00:00"
         },
         {
             "name": "nesbot/carbon",

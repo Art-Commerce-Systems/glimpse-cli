@@ -39,11 +39,7 @@ class AuthCommand extends Command
 
             $config->setToken($token);
 
-            $this->info(sprintf(
-                'Authenticated as %s (%s)',
-                $user['name'] ?? 'unknown',
-                $user['email'] ?? 'unknown',
-            ));
+            $this->info(sprintf('Authenticated as %s (%s)', $user->name, $user->email));
             $this->line('Token saved to '.$config->path());
 
             return self::SUCCESS;

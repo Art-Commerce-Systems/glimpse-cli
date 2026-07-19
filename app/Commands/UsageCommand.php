@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use GlimpseImg\Client;
+use GlimpseImg\UsageSummary;
 
 class UsageCommand extends GlimpseCommand
 {
@@ -17,7 +18,7 @@ class UsageCommand extends GlimpseCommand
             $usage = $client->usage();
 
             if ($this->option('json')) {
-                $this->line((string) json_encode($usage, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                $this->line((string) json_encode($this->toArray($usage), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
                 return self::SUCCESS;
             }
@@ -29,54 +30,46 @@ class UsageCommand extends GlimpseCommand
     }
 
     /**
-     * @param  array<string, mixed>  $usage
+     * The snake_case summary for --json, mirroring the API response shape
+     * (period re-serialized as ISO-8601) so the output contract survives
+     * the SDK's typed results.
+     *
+     * @return array<string, mixed>
      */
-    private function render(array $usage): void
+    private function toArray(UsageSummary $usage): array
     {
-        $operations = data_get($usage, 'operations');
-        $bytesSaved = data_get($usage, 'bytes_saved');
-        $averageReduction = data_get($usage, 'average_reduction');
+        return [
+            'period' => [
+                'from' => $usage->period->from->format(DATE_ATOM),
+                'to' => $usage->period->to->format(DATE_ATOM),
+            ],
+            'operations' => $usage->operations,
+            'bytes_saved' => $usage->bytesSaved,
+            'average_reduction' => $usage->averageReduction,
+            'by_operation' => $usage->byOperation,
+        ];
+    }
 
+    private function render(UsageSummary $usage): void
+    {
         $rows = [];
 
-        $rows[] = ['Period', $this->period($usage)];
-        $rows[] = ['Operations', is_numeric($operations) ? number_format((int) $operations) : '0'];
+        $rows[] = ['Period', $usage->period->from->format('Y-m-d').' to '.$usage->period->to->format('Y-m-d')];
+        $rows[] = ['Operations', number_format($usage->operations)];
         // humanSize expects a non-negative int; a net-growth month is
         // possible (conversions can grow output), so carry the sign.
-        $rows[] = ['Data saved', is_int($bytesSaved)
-            ? ($bytesSaved < 0 ? '-' : '').$this->humanSize(abs($bytesSaved))
-            : '0 B'];
-        $rows[] = ['Avg. reduction', is_numeric($averageReduction) ? $averageReduction.'%' : '0%'];
+        $rows[] = ['Data saved', ($usage->bytesSaved < 0 ? '-' : '').$this->humanSize(abs($usage->bytesSaved))];
+        $rows[] = ['Avg. reduction', $usage->averageReduction.'%'];
 
         $this->table(['Metric', 'Value'], $rows);
 
-        $byOperation = data_get($usage, 'by_operation');
-
-        if (is_array($byOperation) && $byOperation !== []) {
+        if ($usage->byOperation !== []) {
             $this->newLine();
             $this->line('<options=bold>By operation</>');
 
-            foreach ($byOperation as $operation => $count) {
-                $count = is_numeric($count) ? number_format((int) $count) : '0';
-                $this->line("  {$operation}: {$count}");
+            foreach ($usage->byOperation as $operation => $count) {
+                $this->line("  {$operation}: ".number_format($count));
             }
         }
-    }
-
-    /**
-     * Format the calendar-month window as plain dates.
-     *
-     * @param  array<string, mixed>  $usage
-     */
-    private function period(array $usage): string
-    {
-        $from = data_get($usage, 'period.from');
-        $to = data_get($usage, 'period.to');
-
-        if (! is_string($from) || ! is_string($to)) {
-            return 'current month';
-        }
-
-        return substr($from, 0, 10).' to '.substr($to, 0, 10);
     }
 }

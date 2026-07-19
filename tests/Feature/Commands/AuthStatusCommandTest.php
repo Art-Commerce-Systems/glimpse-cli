@@ -16,7 +16,7 @@ test('reports when not authenticated', function () {
 test('shows the API url, a masked token, and the identity', function () {
     app(Config::class)->setToken('secret-token-1234');
 
-    Http::fake(['*/user' => Http::response(['name' => 'Mathias', 'email' => 'mathias@example.com'])]);
+    Http::fake(['*/user' => Http::response(['id' => 7, 'name' => 'Mathias', 'email' => 'mathias@example.com', 'created_at' => '2025-11-03T09:30:00.000000Z'])]);
 
     $this->artisan('auth:status')
         ->expectsOutputToContain('API URL: https://glimpseimg.com/api')

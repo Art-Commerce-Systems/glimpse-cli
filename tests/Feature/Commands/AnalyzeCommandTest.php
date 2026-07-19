@@ -57,14 +57,11 @@ test('prints a table with one row per format', function () {
         ->and($output)->toContain('-3.4 MB');
 });
 
-test('prints the raw analysis with --json', function () {
+test('the --json output mirrors the API estimates byte for byte', function () {
     $exitCode = Artisan::call('analyze', ['input' => createImage(), '--json' => true]);
-    $decoded = json_decode(Artisan::output(), true);
 
     expect($exitCode)->toBe(0)
-        ->and($decoded)->toHaveCount(4)
-        ->and($decoded[0]['format'])->toBe('jpg')
-        ->and($decoded[1]['quality'])->toBeNull();
+        ->and(Artisan::output())->toBe(json_encode(fakeAnalyzeResponse()['data'], JSON_UNESCAPED_SLASHES)."\n");
 });
 
 test('passes an explicit quality through to the api', function () {

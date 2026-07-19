@@ -3,10 +3,15 @@
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
-beforeEach(function () {
-    putenv('GLIMPSE_TOKEN=test-token');
-
-    Http::fake(['*/v1/usage' => Http::response(['data' => [
+/**
+ * The full /v1/usage response body, mirroring the real API shape
+ * (see UsageSummaryResource on the server).
+ *
+ * @return array<string, mixed>
+ */
+function fullUsageApiResponse(): array
+{
+    return [
         'period' => [
             'from' => '2026-07-01T00:00:00+00:00',
             'to' => '2026-07-31T23:59:59+00:00',
@@ -22,7 +27,13 @@ beforeEach(function () {
             'info' => 6,
             'analyze' => 7,
         ],
-    ]])]);
+    ];
+}
+
+beforeEach(function () {
+    putenv('GLIMPSE_TOKEN=test-token');
+
+    Http::fake(['*/v1/usage' => Http::response(['data' => fullUsageApiResponse()])]);
 });
 
 test('prints a pretty usage table by default', function () {
@@ -35,15 +46,11 @@ test('prints a pretty usage table by default', function () {
         ->assertExitCode(0);
 });
 
-test('prints the raw usage summary with --json', function () {
+test('the --json output mirrors the API response byte for byte', function () {
     $exitCode = Artisan::call('usage', ['--json' => true]);
-    $decoded = json_decode(Artisan::output(), true);
 
     expect($exitCode)->toBe(0)
-        ->and($decoded['operations'])->toBe(68)
-        ->and($decoded['bytes_saved'])->toBe(62111321)
-        ->and($decoded['by_operation']['convert'])->toBe(22)
-        ->and($decoded['period']['from'])->toBe('2026-07-01T00:00:00+00:00');
+        ->and(Artisan::output())->toBe(json_encode(fullUsageApiResponse(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)."\n");
 });
 
 test('fails cleanly without a token', function () {
