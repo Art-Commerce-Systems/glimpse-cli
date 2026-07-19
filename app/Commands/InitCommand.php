@@ -58,7 +58,8 @@ class InitCommand extends Command
      * YAML carries ${{ ... }} expressions a heredoc would interpolate.
      * The continuous-integration page of the docs (glimpseimg.com/docs)
      * shows this template as the copy-by-hand alternative; update it
-     * when the template changes.
+     * when the template changes. The glimpseimg.com repo runs a
+     * docs-drift workflow that compares the two and fails on mismatch.
      *
      * The check step is guarded on the token (mapped into the job env,
      * because the secrets context is not available in step-level if

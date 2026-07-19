@@ -1,6 +1,6 @@
 {
     "name": "mathiasgrimm/glimpse-cli",
-    "description": "Convert, optimize, resize, thumbnail and inspect images from your terminal. The first-party CLI for glimpseimg.com, the image API for developers.",
+    "description": "Convert, optimize, resize, thumbnail and analyze images from your terminal. The first-party CLI for glimpseimg.com, the image API for developers.",
     "keywords": ["glimpse", "image", "cli", "convert", "optimize", "resize", "thumbnail", "jpg", "jpeg", "gif", "png", "webp", "avif"],
     "type": "project",
     "license": "MIT",
