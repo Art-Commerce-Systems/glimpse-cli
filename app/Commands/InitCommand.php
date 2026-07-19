@@ -6,7 +6,7 @@ use App\Commands\Concerns\GuardsApiErrors;
 use App\Support\BaselineFile;
 use App\Support\IgnoreFile;
 use App\Support\Paths;
-use GlimpseImg\ApiException;
+use App\Support\ScaffoldFile;
 use LaravelZero\Framework\Commands\Command;
 
 class InitCommand extends Command
@@ -15,9 +15,16 @@ class InitCommand extends Command
 
     protected $signature = 'init
         {--update-baseline : Seed the baseline by scanning the current directory (runs analyze . --update-baseline)}
-        {--force : Recreate .glimpseignore from the starter template even when it exists}';
+        {--workflow : Add a GitHub Actions workflow that runs glimpse check, without prompting}
+        {--force : Recreate .glimpseignore from its template even when it exists; add --workflow to also recreate the workflow file}';
 
-    protected $description = 'Set up the current directory for glimpse: a starter .glimpseignore and the baseline';
+    protected $description = 'Set up the current directory for glimpse: a starter .glimpseignore, the baseline, and optionally a CI workflow';
+
+    /**
+     * Where the scaffolded GitHub Actions workflow lives, relative to
+     * the project root.
+     */
+    public const WORKFLOW_PATH = '.github/workflows/glimpse.yml';
 
     /**
      * The starter .glimpseignore. One static template, no project-type
@@ -47,18 +54,74 @@ class InitCommand extends Command
         GITIGNORE;
 
     /**
+     * The scaffolded GitHub Actions workflow. A nowdoc, because the
+     * YAML carries ${{ ... }} expressions a heredoc would interpolate.
+     * The README's Continuous Integration section embeds this template
+     * verbatim; a test keeps the two in sync.
+     *
+     * The check step is guarded on the token (mapped into the job env,
+     * because the secrets context is not available in step-level if
+     * expressions): fork pull requests never receive repository
+     * secrets, so those runs skip the check with a visible warning
+     * instead of failing on an authentication error, and the push run
+     * after the merge still gates with the real secret.
+     */
+    public const WORKFLOW_TEMPLATE = <<<'YAML'
+        name: Glimpse
+
+        on:
+          push:
+            branches: [main]
+          pull_request:
+
+        permissions:
+          contents: read
+
+        jobs:
+          check-images:
+            runs-on: ubuntu-latest
+            env:
+              GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
+            steps:
+              - uses: actions/checkout@v6
+              - name: Install glimpse
+                run: |
+                  curl -fsSL -o "$RUNNER_TEMP/glimpse" https://github.com/mathiasgrimm/glimpse-cli/releases/latest/download/glimpse
+                  chmod +x "$RUNNER_TEMP/glimpse"
+                  echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+              - name: Check images
+                if: env.GLIMPSE_TOKEN != ''
+                run: glimpse check .
+              - name: Skipped (no token)
+                if: env.GLIMPSE_TOKEN == ''
+                run: echo "::warning::GLIMPSE_TOKEN is not available (fork PR, or the secret is not set); image check skipped."
+
+        YAML;
+
+    /**
      * Whether this run recorded the current images into the baseline (the
      * seed scan ran and succeeded, or the baseline already existed), which
      * drops the "accept the current images" next-steps hint.
      */
     private bool $baselinePopulated = false;
 
+    /**
+     * Whether this run wrote the workflow file (created or recreated),
+     * and whether it found and kept an existing one. Together with
+     * "neither" they pick the next-steps variant.
+     */
+    private bool $workflowWritten = false;
+
+    private bool $workflowKept = false;
+
     public function handle(): int
     {
         return $this->runGuarded(function () {
             // The console application reuses the resolved command instance,
-            // so the flag must not carry over from an earlier in-process run.
+            // so the flags must not carry over from an earlier in-process run.
             $this->baselinePopulated = false;
+            $this->workflowWritten = false;
+            $this->workflowKept = false;
 
             $root = Paths::root();
 
@@ -68,6 +131,8 @@ class InitCommand extends Command
             $this->writeIgnoreFile($root);
 
             $exitCode = $this->setUpBaseline($root);
+
+            $this->setUpWorkflow($root);
 
             $this->printNextSteps();
 
@@ -86,24 +151,7 @@ class InitCommand extends Command
             return;
         }
 
-        // Exclusive creation when the file was absent: one that appeared
-        // since the check above fails the write instead of being truncated.
-        $handle = @fopen($path, $exists ? 'w' : 'x');
-
-        if ($handle === false) {
-            throw new ApiException("Could not write {$path}.");
-        }
-
-        $written = @fwrite($handle, self::IGNORE_TEMPLATE);
-        fclose($handle);
-
-        if ($written !== strlen(self::IGNORE_TEMPLATE)) {
-            if (! $exists) {
-                @unlink($path);
-            }
-
-            throw new ApiException("Could not write {$path}.");
-        }
+        ScaffoldFile::write($root, IgnoreFile::FILENAME, self::IGNORE_TEMPLATE, replace: $exists);
 
         $this->info($exists
             ? 'Recreated '.IgnoreFile::FILENAME.' from the starter template.'
@@ -172,6 +220,58 @@ class InitCommand extends Command
         return self::FAILURE;
     }
 
+    /**
+     * Scaffold the GitHub Actions workflow. Opt-in like the seed scan:
+     * the --workflow flag selects it outright; a plain run only offers
+     * it (a confirm defaulting to No) when the file is missing and the
+     * root is a git repository, so non-interactive runs never write it
+     * and non-repos are never asked. An existing file is always kept
+     * unless --workflow --force replaces it; --force alone never
+     * touches it, because --workflow selects the step and --force is
+     * only the overwrite modifier.
+     */
+    private function setUpWorkflow(string $root): void
+    {
+        $path = $root.'/'.self::WORKFLOW_PATH;
+        $selected = (bool) $this->option('workflow');
+
+        if (is_file($path)) {
+            if ($selected && $this->option('force')) {
+                ScaffoldFile::write($root, self::WORKFLOW_PATH, self::WORKFLOW_TEMPLATE, replace: true);
+                $this->info('Recreated '.self::WORKFLOW_PATH.' from the starter template.');
+                $this->workflowWritten = true;
+
+                return;
+            }
+
+            $this->line(self::WORKFLOW_PATH.' already exists, kept (use --workflow --force to recreate it).');
+            $this->workflowKept = true;
+
+            return;
+        }
+
+        if (! $selected && $this->isGitRoot($root)) {
+            $selected = $this->confirm('Add a GitHub Actions workflow that runs glimpse check on pull requests and pushes to main ('.self::WORKFLOW_PATH.')?', false);
+        }
+
+        if (! $selected) {
+            return;
+        }
+
+        ScaffoldFile::write($root, self::WORKFLOW_PATH, self::WORKFLOW_TEMPLATE);
+        $this->info('Created '.self::WORKFLOW_PATH.'.');
+        $this->workflowWritten = true;
+    }
+
+    /**
+     * Whether the root is a git repository: .git is a directory in a
+     * normal clone and a file in a worktree.
+     */
+    private function isGitRoot(string $root): bool
+    {
+        return file_exists($root.'/.git');
+    }
+
     private function printNextSteps(): void
     {
         $steps = ['Review '.IgnoreFile::FILENAME.' and tune the patterns for your project.'];
@@ -180,8 +280,16 @@ class InitCommand extends Command
             $steps[] = 'Accept the current images as already handled: glimpse analyze . --update-baseline';
         }
 
-        $steps[] = 'Commit '.IgnoreFile::FILENAME.' and '.BaselineFile::FILENAME.'.';
-        $steps[] = 'Gate new images in CI: glimpse check .  (see the Continuous Integration section of the README)';
+        if ($this->workflowWritten) {
+            $steps[] = 'Set the GLIMPSE_TOKEN secret on the repository: gh secret set GLIMPSE_TOKEN';
+            $steps[] = 'Commit '.IgnoreFile::FILENAME.', '.BaselineFile::FILENAME.', and '.self::WORKFLOW_PATH.'.';
+        } else {
+            $steps[] = 'Commit '.IgnoreFile::FILENAME.' and '.BaselineFile::FILENAME.'.';
+
+            $steps[] = $this->workflowKept
+                ? 'Review '.self::WORKFLOW_PATH.' and make sure the GLIMPSE_TOKEN secret is set: gh secret set GLIMPSE_TOKEN'
+                : 'Gate new images in CI: glimpse check .  (see the Continuous Integration section of the README)';
+        }
 
         $this->newLine();
         $this->line('Next steps:');

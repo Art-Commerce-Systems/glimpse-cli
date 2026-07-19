@@ -112,7 +112,7 @@ Pass `--in-place` (short form `-i`) to write the result over the input file inst
 
 ### Init
 
-`glimpse init` sets up a project in one step. Run it from the project root: it writes a starter [`.glimpseignore`](#glimpseignore), creates an empty [`.glimpse-baseline.json`](#glimpse-baselinejson), offers to record the current images into the baseline (pass `--update-baseline` to do that without the prompt), and prints the next steps. A plain run needs no token and makes no API calls.
+`glimpse init` sets up a project in one step. Run it from the project root: it writes a starter [`.glimpseignore`](#glimpseignore), creates an empty [`.glimpse-baseline.json`](#glimpse-baselinejson), offers to record the current images into the baseline (pass `--update-baseline` to do that without the prompt), and prints the next steps. Inside a git repository it also offers to add a GitHub Actions workflow that runs `glimpse check`. Pass `--workflow` to write that file without the prompt (see [Continuous Integration](#continuous-integration)). A plain run needs no token and makes no API calls.
 
 ```
 $ glimpse init
@@ -130,7 +130,7 @@ Next steps:
   4. Gate new images in CI: glimpse check .  (see the Continuous Integration section of the README)
 ```
 
-Init never overwrites what you have: existing files are kept with a note, and the run still exits 0. `--force` recreates only the `.glimpseignore` template; it never touches an existing baseline. To re-seed an existing baseline, run `glimpse init --update-baseline` (or `glimpse analyze . --update-baseline` directly).
+Init never overwrites what you have: existing files are kept with a note, and the run still exits 0. `--force` recreates the `.glimpseignore` template. Combined with `--workflow` it also recreates the workflow file. On its own it never touches an existing workflow, and it never touches a baseline. To re-seed an existing baseline, run `glimpse init --update-baseline` (or `glimpse analyze . --update-baseline` directly).
 
 ### Convert
 
@@ -322,30 +322,52 @@ glimpse convert photo.png --format=avif --json | jq .size
 
 ## Continuous Integration
 
-Add `glimpse check` to your GitHub workflow to keep unoptimized images out of your repo. Store your API token as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) named `GLIMPSE_TOKEN` (glimpse picks it up from the environment, see [Authentication](#authentication)):
+Add `glimpse check` to your GitHub workflow to keep unoptimized images out of your repo. The fastest way is to let init write the workflow for you, from the repo root:
+
+```bash
+glimpse init --workflow
+```
+
+This creates `.github/workflows/glimpse.yml`. A plain `glimpse init` also offers it when the directory is a git repository. Then store your API token as an [encrypted secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets) named `GLIMPSE_TOKEN` (glimpse picks it up from the environment, see [Authentication](#authentication)):
+
+```bash
+gh secret set GLIMPSE_TOKEN
+```
+
+This is the generated workflow, if you prefer to copy it by hand:
 
 ```yaml
-name: Images
+name: Glimpse
 
 on:
   push:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  images:
+  check-images:
     runs-on: ubuntu-latest
+    env:
+      GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install glimpse
         run: |
-          curl -Lo /usr/local/bin/glimpse https://github.com/mathiasgrimm/glimpse-cli/releases/latest/download/glimpse
-          chmod +x /usr/local/bin/glimpse
+          curl -fsSL -o "$RUNNER_TEMP/glimpse" https://github.com/mathiasgrimm/glimpse-cli/releases/latest/download/glimpse
+          chmod +x "$RUNNER_TEMP/glimpse"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
       - name: Check images
+        if: env.GLIMPSE_TOKEN != ''
         run: glimpse check .
-        env:
-          GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
+      - name: Skipped (no token)
+        if: env.GLIMPSE_TOKEN == ''
+        run: echo "::warning::GLIMPSE_TOKEN is not available (fork PR, or the secret is not set); image check skipped."
 ```
+
+The check step only runs when `GLIMPSE_TOKEN` is available. Pull requests from forks never receive repository secrets, so those runs skip the check with a warning annotation instead of failing on an authentication error. The push run after the merge has the secret and still gates. The same guard keeps a repository that has not set the secret yet on a visible warning instead of a permanent failure. If your default branch is not `main`, edit the one `branches: [main]` line.
 
 GitHub's `ubuntu-latest` runners ship PHP out of the box, so the PHAR runs as-is. Exclude paths you do not control (vendored packages, generated assets) with a [`.glimpseignore`](#glimpseignore) file at the repo root, and tune the failure bar with `--threshold`. Rolling glimpse out on a repo full of legacy images? Commit a [`.glimpse-baseline.json`](#glimpse-baselinejson) so the gate only fails on new or changed files (`glimpse init` scaffolds both). When the check fails, fix it by running the optimizer locally:
 

@@ -1,15 +1,41 @@
 <?php
 
+use App\Commands\InitCommand;
 use App\Support\BaselineFile;
 use App\Support\IgnoreFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Symfony\Component\Process\Process;
 
 const INIT_SEED_QUESTION = 'Scan the current directory and record every image into the baseline now (runs analyze . --update-baseline)?';
+
+const INIT_WORKFLOW_QUESTION = 'Add a GitHub Actions workflow that runs glimpse check on pull requests and pushes to main (.github/workflows/glimpse.yml)?';
 
 function ignorePath(): string
 {
     return workspace().'/'.IgnoreFile::FILENAME;
+}
+
+function workflowPath(): string
+{
+    return workspace().'/'.InitCommand::WORKFLOW_PATH;
+}
+
+/**
+ * Plant an existing workflow file with recognizable non-template content
+ * in the directory (the test workspace by default).
+ */
+function writeWorkflow(string $content = "custom: workflow\n", ?string $directory = null): string
+{
+    $path = ($directory ?? workspace()).'/'.InitCommand::WORKFLOW_PATH;
+
+    if (! is_dir(dirname($path))) {
+        mkdir(dirname($path), 0755, true);
+    }
+
+    file_put_contents($path, $content);
+
+    return $content;
 }
 
 test('scaffolds the starter ignore file and an empty baseline with zero prerequisites', function () {
@@ -225,4 +251,262 @@ test('next steps drop the seed hint when the baseline was seeded', function () {
 
     expect($output)->toContain('Next steps:')
         ->and($output)->not->toContain('Accept the current images as already handled');
+});
+
+describe('workflow scaffolding', function () {
+    test('a git repository is offered the workflow, and confirming scaffolds it', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.git');
+        Http::fake();
+
+        $this->artisan('init')
+            ->expectsConfirmation(INIT_SEED_QUESTION)
+            ->expectsConfirmation(INIT_WORKFLOW_QUESTION, 'yes')
+            ->expectsOutputToContain('Created '.InitCommand::WORKFLOW_PATH.'.')
+            ->assertExitCode(0);
+
+        expect((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE);
+
+        Http::assertNothingSent();
+    });
+
+    test('declining the workflow prompt writes nothing and keeps the generic CI hint', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.git');
+        Http::fake();
+
+        $this->artisan('init')
+            ->expectsConfirmation(INIT_SEED_QUESTION)
+            ->expectsConfirmation(INIT_WORKFLOW_QUESTION)
+            ->expectsOutputToContain('Gate new images in CI: glimpse check .')
+            ->assertExitCode(0);
+
+        expect(is_file(workflowPath()))->toBeFalse();
+    });
+
+    test('outside a git repository there is no workflow prompt and no file', function () {
+        chdirWorkspace();
+        Http::fake();
+
+        // Only the seed confirmation is expected; an unexpected workflow
+        // confirm would fail this interactive run.
+        $this->artisan('init')
+            ->expectsConfirmation(INIT_SEED_QUESTION)
+            ->assertExitCode(0);
+
+        expect(is_file(workflowPath()))->toBeFalse();
+    });
+
+    test('a worktree-style .git file also triggers the offer', function () {
+        chdirWorkspace();
+        file_put_contents(workspace().'/.git', "gitdir: ../elsewhere\n");
+        Http::fake();
+
+        $this->artisan('init')
+            ->expectsConfirmation(INIT_SEED_QUESTION)
+            ->expectsConfirmation(INIT_WORKFLOW_QUESTION, 'yes')
+            ->assertExitCode(0);
+
+        expect((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE);
+    });
+
+    test('non-interactive runs fall through to the default and never write the workflow', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.git');
+        Http::fake();
+
+        expect(Artisan::call('init'))->toBe(0)
+            ->and(is_file(workflowPath()))->toBeFalse()
+            ->and(Artisan::output())->toContain('Gate new images in CI: glimpse check .');
+    });
+
+    test('--workflow scaffolds without prompting and without a git repository', function () {
+        chdirWorkspace();
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(0);
+
+        $output = Artisan::output();
+
+        expect($output)->toContain('Created '.InitCommand::WORKFLOW_PATH.'.')
+            ->and($output)->toContain('Set the GLIMPSE_TOKEN secret on the repository: gh secret set GLIMPSE_TOKEN')
+            ->and($output)->toContain('Commit '.IgnoreFile::FILENAME.', '.BaselineFile::FILENAME.', and '.InitCommand::WORKFLOW_PATH.'.')
+            ->and($output)->not->toContain('Gate new images in CI')
+            ->and((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE);
+    });
+
+    test('an existing workflow is kept byte for byte, without a prompt', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.git');
+        $content = writeWorkflow();
+        Http::fake();
+
+        // No workflow confirmation is registered: the existing file must
+        // short-circuit the prompt even in a git repository.
+        $this->artisan('init')
+            ->expectsConfirmation(INIT_SEED_QUESTION)
+            ->expectsOutputToContain(InitCommand::WORKFLOW_PATH.' already exists, kept (use --workflow --force to recreate it).')
+            ->expectsOutputToContain('Review '.InitCommand::WORKFLOW_PATH.' and make sure the GLIMPSE_TOKEN secret is set: gh secret set GLIMPSE_TOKEN')
+            ->assertExitCode(0);
+
+        expect((string) file_get_contents(workflowPath()))->toBe($content);
+    });
+
+    test('--workflow keeps an existing file unless --force is added', function () {
+        chdirWorkspace();
+        $content = writeWorkflow();
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(0)
+            ->and(Artisan::output())->toContain('already exists, kept (use --workflow --force to recreate it).')
+            ->and((string) file_get_contents(workflowPath()))->toBe($content);
+    });
+
+    test('--workflow --force recreates an existing workflow from the template', function () {
+        chdirWorkspace();
+        writeWorkflow();
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true, '--force' => true]))->toBe(0)
+            ->and(Artisan::output())->toContain('Recreated '.InitCommand::WORKFLOW_PATH.' from the starter template.')
+            ->and((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE);
+    });
+
+    test('--force alone never touches an existing workflow', function () {
+        chdirWorkspace();
+        $content = writeWorkflow();
+        Http::fake();
+
+        expect(Artisan::call('init', ['--force' => true]))->toBe(0)
+            ->and((string) file_get_contents(workflowPath()))->toBe($content);
+    });
+
+    test('a failed baseline seed still scaffolds the workflow and exits 1', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        putenv('GLIMPSE_TOKEN=test-token');
+        Http::fake(['*/v1/analyze' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+        expect(Artisan::call('init', ['--update-baseline' => true, '--workflow' => true]))->toBe(1)
+            ->and((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE);
+    });
+
+    test('a .github regular file fails the run cleanly', function () {
+        chdirWorkspace();
+        file_put_contents(workspace().'/.github', 'not a directory');
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(1)
+            ->and(Artisan::output())->toContain('Could not create the directory')
+            ->and(is_file(workflowPath()))->toBeFalse();
+    });
+
+    test('a symlinked workflow is refused and its target preserved', function () {
+        chdirWorkspace();
+        mkdir(dirname(workflowPath()), 0755, true);
+        file_put_contents(workspace().'/target.yml', "original\n");
+        symlink(workspace().'/target.yml', workflowPath());
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true, '--force' => true]))->toBe(1)
+            ->and(Artisan::output())->toContain('is a symbolic link')
+            ->and((string) file_get_contents(workspace().'/target.yml'))->toBe("original\n");
+    });
+
+    test('the workflow state does not leak between runs in the same process', function () {
+        chdirWorkspace();
+        Http::fake();
+
+        Artisan::call('init', ['--workflow' => true]);
+        Artisan::output();
+
+        // The written state must not leak into a project whose workflow
+        // already exists, and the kept state set here must not leak out.
+        $kept = workspace().'/kept';
+        writeWorkflow(directory: $kept);
+        chdirWorkspace($kept);
+
+        Artisan::call('init');
+        $output = Artisan::output();
+
+        expect($output)->toContain('Review '.InitCommand::WORKFLOW_PATH)
+            ->and($output)->not->toContain('Set the GLIMPSE_TOKEN secret on the repository');
+
+        chdirWorkspace(workspace().'/fresh');
+
+        Artisan::call('init');
+        $output = Artisan::output();
+
+        expect($output)->toContain('Gate new images in CI')
+            ->and($output)->not->toContain('gh secret set');
+    });
+
+    test('--workflow suppresses only the workflow prompt, the seed prompt still appears', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        putenv('GLIMPSE_TOKEN=test-token');
+        Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
+
+        $this->artisan('init', ['--workflow' => true])
+            ->expectsConfirmation(INIT_SEED_QUESTION, 'yes')
+            ->assertExitCode(0);
+
+        expect((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE)
+            ->and(baselineFiles())->toBe(['photo.png' => baselineEntry(workspace().'/photo.png')]);
+    });
+
+    test('--force alone still only offers a missing workflow, it does not select it', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.git');
+        Http::fake();
+
+        $this->artisan('init', ['--force' => true])
+            ->expectsConfirmation(INIT_SEED_QUESTION)
+            ->expectsConfirmation(INIT_WORKFLOW_QUESTION)
+            ->assertExitCode(0);
+
+        expect(is_file(workflowPath()))->toBeFalse();
+    });
+
+    test('a .github/workflows regular file fails the run cleanly', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.github');
+        file_put_contents(workspace().'/.github/workflows', 'not a directory');
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(1)
+            ->and(Artisan::output())->toContain('Could not create the directory')
+            ->and((string) file_get_contents(workspace().'/.github/workflows'))->toBe('not a directory');
+    });
+
+    test('a symlinked workflows directory is refused, nothing lands at its target', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.github');
+        mkdir(workspace().'/elsewhere');
+        symlink(workspace().'/elsewhere', workspace().'/.github/workflows');
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(1)
+            ->and(Artisan::output())->toContain('is a symbolic link')
+            ->and(glob(workspace().'/elsewhere/*'))->toBe([]);
+    });
+
+    test('piped answers reach the prompts in order', function () {
+        chdirWorkspace();
+        mkdir(workspace().'/.git');
+
+        // A real subprocess with real stdin: "no" answers the seed
+        // question (so no API call is attempted), "yes" the workflow one.
+        $process = new Process([PHP_BINARY, base_path('glimpse'), 'init'], workspace());
+        $process->setInput("no\nyes\n");
+        $process->run();
+
+        expect($process->getExitCode())->toBe(0)
+            ->and((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE)
+            ->and(baselineFiles())->toBe([]);
+    });
+
+    test('the README embeds the workflow template verbatim', function () {
+        expect((string) file_get_contents(base_path('README.md')))->toContain(InitCommand::WORKFLOW_TEMPLATE);
+    });
 });
