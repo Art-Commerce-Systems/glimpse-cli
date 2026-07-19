@@ -36,6 +36,9 @@ class InitCommand extends Command
         public/build/
         dist/
 
+        # Runtime state and user uploads (Laravel)
+        storage/
+
         # Favicons and touch icons: tiny and format-constrained, not worth optimizing
         favicon.ico
         favicon*.png

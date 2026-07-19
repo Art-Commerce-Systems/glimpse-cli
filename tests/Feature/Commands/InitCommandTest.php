@@ -27,6 +27,7 @@ test('scaffolds the starter ignore file and an empty baseline with zero prerequi
 
     expect($ignore)->toContain('vendor/')
         ->and($ignore)->toContain('node_modules/')
+        ->and($ignore)->toContain('storage/')
         ->and($ignore)->toContain('apple-touch-icon*.png');
 
     $baseline = json_decode((string) file_get_contents(baselinePath()), true);
