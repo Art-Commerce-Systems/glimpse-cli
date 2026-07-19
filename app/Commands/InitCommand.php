@@ -53,6 +53,10 @@ class InitCommand extends Command
     public function handle(): int
     {
         return $this->runGuarded(function () {
+            // The console application reuses the resolved command instance,
+            // so the flag must not carry over from an earlier in-process run.
+            $this->baselinePopulated = false;
+
             $root = Paths::root();
 
             // Order is load-bearing: the ignore file must exist before any
@@ -79,7 +83,22 @@ class InitCommand extends Command
             return;
         }
 
-        if (@file_put_contents($path, self::IGNORE_TEMPLATE) === false) {
+        // Exclusive creation when the file was absent: one that appeared
+        // since the check above fails the write instead of being truncated.
+        $handle = @fopen($path, $exists ? 'w' : 'x');
+
+        if ($handle === false) {
+            throw new ApiException("Could not write {$path}.");
+        }
+
+        $written = @fwrite($handle, self::IGNORE_TEMPLATE);
+        fclose($handle);
+
+        if ($written !== strlen(self::IGNORE_TEMPLATE)) {
+            if (! $exists) {
+                @unlink($path);
+            }
+
             throw new ApiException("Could not write {$path}.");
         }
 
@@ -92,8 +111,10 @@ class InitCommand extends Command
      * Create or seed the baseline. Seeding is opt-in: the --update-baseline
      * flag, or an interactive confirm defaulting to No, so a plain init
      * works with zero prerequisites (no token, no network). confirm()
-     * returns the default when non-interactive, so CI and piped runs fall
-     * through to the empty baseline with zero API calls.
+     * returns the default when the input is non-interactive (-n) or stdin
+     * is at end-of-file, the usual CI shape, so those runs fall through to
+     * the empty baseline with zero API calls. Piped input that carries an
+     * answer is read as that answer.
      */
     private function setUpBaseline(string $root): int
     {

@@ -169,6 +169,37 @@ test('a failed seed still scaffolds an empty baseline and exits 1 with a retry h
         ->and(baselineFiles())->toBe([]);
 });
 
+test('a partially failed seed passes analyze exit 0 through and drops the seed hint', function () {
+    chdirWorkspace();
+    createImage('photo.png');
+    createImage('broken.png', 'not an image');
+    putenv('GLIMPSE_TOKEN=test-token');
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
+
+    expect(Artisan::call('init', ['--update-baseline' => true]))->toBe(0);
+
+    $output = Artisan::output();
+
+    expect($output)->toContain('skipped: Unrecognized image format.')
+        ->and($output)->not->toContain('Accept the current images as already handled')
+        ->and(baselineFiles())->toBe(['photo.png' => baselineEntry(workspace().'/photo.png')]);
+});
+
+test('the seed-hint state does not leak between runs in the same process', function () {
+    chdirWorkspace();
+    createImage('photo.png');
+    putenv('GLIMPSE_TOKEN=test-token');
+    Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
+
+    Artisan::call('init', ['--update-baseline' => true]);
+    Artisan::output();
+
+    chdirWorkspace(workspace().'/fresh');
+
+    expect(Artisan::call('init'))->toBe(0)
+        ->and(Artisan::output())->toContain('Accept the current images as already handled');
+});
+
 test('next steps include the seed hint on a scaffold-only run', function () {
     chdirWorkspace();
     Http::fake();
