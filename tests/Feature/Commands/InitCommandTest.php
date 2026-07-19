@@ -506,7 +506,4 @@ describe('workflow scaffolding', function () {
             ->and(baselineFiles())->toBe([]);
     });
 
-    test('the README embeds the workflow template verbatim', function () {
-        expect((string) file_get_contents(base_path('README.md')))->toContain(InitCommand::WORKFLOW_TEMPLATE);
-    });
 });

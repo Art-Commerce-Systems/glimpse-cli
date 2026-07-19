@@ -56,8 +56,10 @@ class InitCommand extends Command
     /**
      * The scaffolded GitHub Actions workflow. A nowdoc, because the
      * YAML carries ${{ ... }} expressions a heredoc would interpolate.
-     * The README's Continuous Integration section embeds this template
-     * verbatim; a test keeps the two in sync.
+     * The continuous-integration page of the docs (glimpseimg.com/docs)
+     * shows this template as the copy-by-hand alternative; update it
+     * when the template changes. The glimpseimg.com repo runs a
+     * docs-drift workflow that compares the two and fails on mismatch.
      *
      * The check step is guarded on the token (mapped into the job env,
      * because the secrets context is not available in step-level if
@@ -288,7 +290,7 @@ class InitCommand extends Command
 
             $steps[] = $this->workflowKept
                 ? 'Review '.self::WORKFLOW_PATH.' and make sure the GLIMPSE_TOKEN secret is set: gh secret set GLIMPSE_TOKEN'
-                : 'Gate new images in CI: glimpse check .  (see the Continuous Integration section of the README)';
+                : 'Gate new images in CI: glimpse check .  (see https://glimpseimg.com/docs/cli/continuous-integration)';
         }
 
         $this->newLine();
