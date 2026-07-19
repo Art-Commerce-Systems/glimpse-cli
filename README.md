@@ -110,6 +110,28 @@ All commands accept a file path as input, or `-` to read from stdin. Output defa
 
 Pass `--in-place` (short form `-i`) to write the result over the input file instead of creating a suffixed sibling. When `convert` changes the format, the input is replaced by a file with the new extension (`a.jpg` → `a.avif`); overwriting the input itself never needs `--force`, but overwriting a *different* existing file (an already-present `a.avif`, say) still does.
 
+### Init
+
+`glimpse init` sets up a project in one step. Run it from the project root: it writes a starter [`.glimpseignore`](#glimpseignore), creates an empty [`.glimpse-baseline.json`](#glimpse-baselinejson), offers to record the current images into the baseline (pass `--update-baseline` to do that without the prompt), and prints the next steps. A plain run needs no token and makes no API calls.
+
+```
+$ glimpse init
+Created .glimpseignore.
+
+ Scan the current directory and record every image into the baseline now (runs analyze . --update-baseline)? (yes/no) [no]:
+ > no
+
+Created .glimpse-baseline.json (empty).
+
+Next steps:
+  1. Review .glimpseignore and tune the patterns for your project.
+  2. Accept the current images as already handled: glimpse analyze . --update-baseline
+  3. Commit .glimpseignore and .glimpse-baseline.json.
+  4. Gate new images in CI: glimpse check .  (see the Continuous Integration section of the README)
+```
+
+Init never overwrites what you have: existing files are kept with a note, and the run still exits 0. `--force` recreates only the `.glimpseignore` template; it never touches an existing baseline. To re-seed an existing baseline, run `glimpse init --update-baseline` (or `glimpse analyze . --update-baseline` directly).
+
 ### Convert
 
 ```bash
@@ -244,6 +266,8 @@ Generate it by scanning the directory:
 glimpse analyze assets/ --update-baseline
 ```
 
+Or let [`glimpse init`](#init) set it up in one step, together with the `.glimpseignore` file.
+
 The file lists each image with its size, content hash, and the operation that put it there, under a composer.lock-style `_readme` header that explains the format to anyone reading it in review:
 
 ```json
@@ -323,7 +347,7 @@ jobs:
           GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
 ```
 
-GitHub's `ubuntu-latest` runners ship PHP out of the box, so the PHAR runs as-is. Exclude paths you do not control (vendored packages, generated assets) with a [`.glimpseignore`](#glimpseignore) file at the repo root, and tune the failure bar with `--threshold`. Rolling glimpse out on a repo full of legacy images? Commit a [`.glimpse-baseline.json`](#glimpse-baselinejson) so the gate only fails on new or changed files. When the check fails, fix it by running the optimizer locally:
+GitHub's `ubuntu-latest` runners ship PHP out of the box, so the PHAR runs as-is. Exclude paths you do not control (vendored packages, generated assets) with a [`.glimpseignore`](#glimpseignore) file at the repo root, and tune the failure bar with `--threshold`. Rolling glimpse out on a repo full of legacy images? Commit a [`.glimpse-baseline.json`](#glimpse-baselinejson) so the gate only fails on new or changed files (`glimpse init` scaffolds both). When the check fails, fix it by running the optimizer locally:
 
 ```bash
 glimpse optimize path/to/offender.png --in-place
