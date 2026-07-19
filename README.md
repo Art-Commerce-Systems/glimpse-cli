@@ -49,6 +49,8 @@ The full documentation lives at **[glimpseimg.com/docs/cli](https://glimpseimg.c
 
 Adding glimpse to an existing project? Follow [Add Glimpse to Your Project](https://glimpseimg.com/docs/add-to-your-project); it goes from install to a CI gate in about ten minutes.
 
+This repository runs the same gate on itself: see [`.github/workflows/images.yml`](.github/workflows/images.yml).
+
 ## Development
 
 ```bash
