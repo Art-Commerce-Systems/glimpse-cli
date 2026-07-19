@@ -33,11 +33,7 @@ class AuthStatusCommand extends Command
 
             $user = $client->user();
 
-            $this->info(sprintf(
-                'Authenticated as %s (%s)',
-                $user['name'] ?? 'unknown',
-                $user['email'] ?? 'unknown',
-            ));
+            $this->info(sprintf('Authenticated as %s (%s)', $user->name, $user->email));
 
             return self::SUCCESS;
         });

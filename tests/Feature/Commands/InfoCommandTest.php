@@ -18,7 +18,7 @@ beforeEach(function () {
         'resolution' => ['x' => 72, 'y' => 72],
         'units' => 'PixelsPerInch',
         'compression' => 'Zip',
-        'quality' => 92,
+        'compression_quality' => 92,
         'orientation' => 'TopLeft',
         'frames' => 1,
         'has_alpha' => true,

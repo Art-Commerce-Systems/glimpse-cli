@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use GlimpseImg\Client;
+use GlimpseImg\ImageInfo;
 
 class InfoCommand extends GlimpseCommand
 {
@@ -18,7 +19,7 @@ class InfoCommand extends GlimpseCommand
             $info = $client->info($this->readImage($this->inputArgument()));
 
             if ($this->option('json')) {
-                $this->line((string) json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                $this->line((string) json_encode($this->toArray($info), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
                 return self::SUCCESS;
             }
@@ -30,9 +31,44 @@ class InfoCommand extends GlimpseCommand
     }
 
     /**
-     * @param  array<string, mixed>  $info
+     * The snake_case metadata for --json, mirroring the API response
+     * shape so the output contract survives the SDK's typed results.
+     *
+     * @return array<string, mixed>
      */
-    private function render(array $info): void
+    private function toArray(ImageInfo $info): array
+    {
+        return [
+            'format' => $info->format,
+            'mime_type' => $info->mimeType,
+            'width' => $info->width,
+            'height' => $info->height,
+            'type' => $info->type,
+            'colorspace' => $info->colorspace,
+            'depth' => $info->depth,
+            'channel_depths' => $info->channelDepths,
+            'size' => $info->size,
+            'resolution' => ['x' => $info->resolution->x, 'y' => $info->resolution->y],
+            'units' => $info->units,
+            'gamma' => $info->gamma,
+            'interlace' => $info->interlace,
+            'compression' => $info->compression,
+            'compression_quality' => $info->compressionQuality,
+            'orientation' => $info->orientation,
+            'rendering_intent' => $info->renderingIntent,
+            'iterations' => $info->iterations,
+            'colors' => $info->colors,
+            'chromaticity' => $info->chromaticity,
+            'background_color' => $info->backgroundColor,
+            'border_color' => $info->borderColor,
+            'frames' => $info->frames,
+            'has_alpha' => $info->hasAlpha,
+            'statistics' => $info->statistics,
+            'properties' => $info->properties,
+        ];
+    }
+
+    private function render(ImageInfo $info): void
     {
         $rows = [];
 
@@ -42,40 +78,31 @@ class InfoCommand extends GlimpseCommand
             }
         };
 
-        $width = data_get($info, 'width');
-        $height = data_get($info, 'height');
-        $size = data_get($info, 'size');
-        $resolutionX = data_get($info, 'resolution.x');
-        $resolutionY = data_get($info, 'resolution.y');
-        $compression = data_get($info, 'compression');
-        $quality = data_get($info, 'quality');
-
-        $add('Format', is_string(data_get($info, 'format')) ? strtoupper((string) data_get($info, 'format')) : null);
-        $add('Mime type', data_get($info, 'mime_type'));
-        $add('Dimensions', $width !== null && $height !== null ? "{$width} x {$height} px" : null);
-        $add('Size', is_int($size) ? $this->humanSize($size) : null);
-        $add('Type', data_get($info, 'type'));
-        $add('Colorspace', data_get($info, 'colorspace'));
-        $add('Depth', data_get($info, 'depth'));
-        $add('Resolution', $resolutionX !== null && $resolutionY !== null
-            ? trim("{$resolutionX} x {$resolutionY} ".(string) data_get($info, 'units', ''))
+        $add('Format', strtoupper($info->format));
+        $add('Mime type', $info->mimeType);
+        $add('Dimensions', "{$info->width} x {$info->height} px");
+        $add('Size', $this->humanSize($info->size));
+        $add('Type', $info->type);
+        $add('Colorspace', $info->colorspace);
+        $add('Depth', $info->depth);
+        $add('Resolution', $info->resolution->x > 0 && $info->resolution->y > 0
+            ? trim("{$info->resolution->x} x {$info->resolution->y} ".($info->units ?? ''))
             : null);
-        $add('Compression', $compression !== null && $quality !== null ? "{$compression} (quality {$quality})" : $compression);
-        $add('Orientation', data_get($info, 'orientation'));
-        $add('Frames', data_get($info, 'frames'));
-        $add('Colors', data_get($info, 'colors'));
-        $add('Alpha', data_get($info, 'has_alpha'));
+        $add('Compression', $info->compression !== null && $info->compressionQuality > 0
+            ? "{$info->compression} (quality {$info->compressionQuality})"
+            : $info->compression);
+        $add('Orientation', $info->orientation);
+        $add('Frames', $info->frames);
+        $add('Colors', $info->colors);
+        $add('Alpha', $info->hasAlpha);
 
         $this->table(['Property', 'Value'], $rows);
 
-        $properties = data_get($info, 'properties');
-
-        if (is_array($properties) && $properties !== []) {
+        if ($info->properties !== []) {
             $this->newLine();
             $this->line('<options=bold>Properties</>');
 
-            foreach ($properties as $key => $value) {
-                $value = is_scalar($value) ? (string) $value : (string) json_encode($value);
+            foreach ($info->properties as $key => $value) {
                 $this->line("  {$key}: {$value}");
             }
         }

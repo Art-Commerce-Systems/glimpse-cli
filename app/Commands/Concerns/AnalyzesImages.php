@@ -10,6 +10,7 @@ use GlimpseImg\Client;
 use GlimpseImg\FrameCounter;
 use GlimpseImg\ImageFormat;
 use GlimpseImg\SampleProbe;
+use GlimpseImg\SizeEstimate;
 use Illuminate\Support\Str;
 
 trait AnalyzesImages
@@ -47,7 +48,7 @@ trait AnalyzesImages
 
             [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-            $estimates = $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes));
+            $estimates = $this->estimateRows($client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes)));
 
             $pick = $this->pick($estimates, $target) ?? throw new ApiException(
                 $target === null ? 'No estimates returned.' : 'No estimate for '.strtoupper($target->value).'.',
@@ -101,6 +102,25 @@ trait AnalyzesImages
     private function baselineSkippedLine(int $count): string
     {
         return sprintf('<fg=gray>%d %s skipped by baseline.</>', $count, Str::plural('file', $count));
+    }
+
+    /**
+     * Convert the SDK's typed estimates back into the snake_case rows the
+     * command output is built from, so the tables and the --json contract
+     * stay unchanged.
+     *
+     * @param  list<SizeEstimate>  $estimates
+     * @return list<array<string, mixed>>
+     */
+    private function estimateRows(array $estimates): array
+    {
+        return array_map(fn (SizeEstimate $estimate) => [
+            'format' => $estimate->format,
+            'size' => $estimate->size,
+            'saved' => $estimate->saved,
+            'saved_percent' => $estimate->savedPercent,
+            'quality' => $estimate->quality,
+        ], $estimates);
     }
 
     /**
