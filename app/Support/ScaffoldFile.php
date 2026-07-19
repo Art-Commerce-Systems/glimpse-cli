@@ -10,23 +10,44 @@ use GlimpseImg\ApiException;
  * caller's existence check and the write fails the write instead of
  * being truncated, and replacement goes through a private temporary
  * file swapped in with an atomic rename, so a failed or short write
- * leaves the previous file untouched. Symbolic links are refused
- * outright, because replacing one would silently rewrite whatever it
- * points at. Missing parent directories are created.
+ * leaves the previous file untouched. Symbolic links anywhere below
+ * the root are refused, because writing through one would silently
+ * land the file wherever the link points, possibly outside the
+ * project. Missing parent directories are created.
  */
 final class ScaffoldFile
 {
-    public static function write(string $path, string $content, bool $replace = false): void
+    public static function write(string $root, string $relativePath, string $content, bool $replace = false): void
     {
-        if (is_link($path)) {
-            throw new ApiException("Could not write {$path}: it is a symbolic link.");
-        }
+        $root = rtrim($root, '/');
+        $path = $root.'/'.$relativePath;
+
+        self::refuseSymlinks($root, $relativePath);
 
         self::ensureDirectory(dirname($path));
 
         $replace
             ? self::swapIn($path, $content)
             : self::createExclusive($path, $content);
+    }
+
+    /**
+     * Refuse the write when the target, or any component of the
+     * relative path below the root, is a symbolic link. Only the
+     * relative components are judged: directories above the root are
+     * the user's own filesystem layout.
+     */
+    private static function refuseSymlinks(string $root, string $relativePath): void
+    {
+        $prefix = $root;
+
+        foreach (explode('/', $relativePath) as $segment) {
+            $prefix .= '/'.$segment;
+
+            if (is_link($prefix)) {
+                throw new ApiException("Could not write {$root}/{$relativePath}: {$prefix} is a symbolic link.");
+            }
+        }
     }
 
     /**
@@ -47,18 +68,7 @@ final class ScaffoldFile
 
     private static function createExclusive(string $path, string $content): void
     {
-        $handle = @fopen($path, 'x');
-
-        if ($handle === false) {
-            throw new ApiException("Could not write {$path}.");
-        }
-
-        $written = @fwrite($handle, $content);
-        fclose($handle);
-
-        if ($written !== strlen($content)) {
-            @unlink($path);
-
+        if (! self::writeNew($path, $content)) {
             throw new ApiException("Could not write {$path}.");
         }
     }
@@ -67,12 +77,37 @@ final class ScaffoldFile
     {
         $temporary = dirname($path).'/.'.basename($path).'.'.bin2hex(random_bytes(6)).'.tmp';
 
-        $written = @file_put_contents($temporary, $content);
-
-        if ($written !== strlen($content) || ! @rename($temporary, $path)) {
+        if (! self::writeNew($temporary, $content) || ! @rename($temporary, $path)) {
             @unlink($temporary);
 
             throw new ApiException("Could not write {$path}.");
         }
+    }
+
+    /**
+     * Write content to a brand-new file (exclusive create) and report
+     * success only after the bytes are flushed and the handle closed
+     * cleanly: a full disk surfaces at flush or close, not at fwrite,
+     * whose stream buffer happily accepts a short template. A failed
+     * write removes the partial file; a failed open (the path already
+     * exists) removes nothing, so a file that appeared since the
+     * caller's existence check is never deleted.
+     */
+    private static function writeNew(string $path, string $content): bool
+    {
+        $handle = @fopen($path, 'x');
+
+        if ($handle === false) {
+            return false;
+        }
+
+        $ok = @fwrite($handle, $content) === strlen($content) && @fflush($handle);
+        $ok = @fclose($handle) && $ok;
+
+        if (! $ok) {
+            @unlink($path);
+        }
+
+        return $ok;
     }
 }

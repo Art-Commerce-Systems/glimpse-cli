@@ -16,7 +16,7 @@ class InitCommand extends Command
     protected $signature = 'init
         {--update-baseline : Seed the baseline by scanning the current directory (runs analyze . --update-baseline)}
         {--workflow : Add a GitHub Actions workflow that runs glimpse check, without prompting}
-        {--force : Recreate scaffolded files from their starter templates even when they exist}';
+        {--force : Recreate .glimpseignore from its template even when it exists; add --workflow to also recreate the workflow file}';
 
     protected $description = 'Set up the current directory for glimpse: a starter .glimpseignore, the baseline, and optionally a CI workflow';
 
@@ -151,7 +151,7 @@ class InitCommand extends Command
             return;
         }
 
-        ScaffoldFile::write($path, self::IGNORE_TEMPLATE, replace: $exists);
+        ScaffoldFile::write($root, IgnoreFile::FILENAME, self::IGNORE_TEMPLATE, replace: $exists);
 
         $this->info($exists
             ? 'Recreated '.IgnoreFile::FILENAME.' from the starter template.'
@@ -237,7 +237,7 @@ class InitCommand extends Command
 
         if (is_file($path)) {
             if ($selected && $this->option('force')) {
-                ScaffoldFile::write($path, self::WORKFLOW_TEMPLATE, replace: true);
+                ScaffoldFile::write($root, self::WORKFLOW_PATH, self::WORKFLOW_TEMPLATE, replace: true);
                 $this->info('Recreated '.self::WORKFLOW_PATH.' from the starter template.');
                 $this->workflowWritten = true;
 
@@ -258,7 +258,7 @@ class InitCommand extends Command
             return;
         }
 
-        ScaffoldFile::write($path, self::WORKFLOW_TEMPLATE);
+        ScaffoldFile::write($root, self::WORKFLOW_PATH, self::WORKFLOW_TEMPLATE);
         $this->info('Created '.self::WORKFLOW_PATH.'.');
         $this->workflowWritten = true;
     }
