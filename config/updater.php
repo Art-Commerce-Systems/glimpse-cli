@@ -1,6 +1,6 @@
 <?php
 
-use App\Updater\GithubReleasesStrategy;
+use MathiasGrimm\GlimpseCli\Updater\GithubReleasesStrategy;
 
 return [
 

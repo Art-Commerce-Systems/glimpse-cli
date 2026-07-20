@@ -1,10 +1,10 @@
 <?php
 
-use App\Commands\InitCommand;
-use App\Support\BaselineFile;
-use App\Support\IgnoreFile;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use MathiasGrimm\GlimpseCli\Commands\InitCommand;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpseCli\Support\IgnoreFile;
 use Symfony\Component\Process\Process;
 
 const INIT_SEED_QUESTION = 'Scan the current directory and record every image into the baseline now (runs analyze . --update-baseline)?';

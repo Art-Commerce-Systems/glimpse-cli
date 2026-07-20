@@ -1,9 +1,9 @@
 <?php
 
-use App\Glimpse\Config;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 use Tests\Fixtures\Images;
 
 beforeEach(function () {

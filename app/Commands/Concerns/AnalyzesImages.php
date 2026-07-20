@@ -1,21 +1,21 @@
 <?php
 
-namespace App\Commands\Concerns;
+namespace MathiasGrimm\GlimpseCli\Commands\Concerns;
 
-use App\Support\BaselineFile;
-use App\Support\Paths;
-use App\Support\Sleeper;
 use Closure;
-use GlimpseImg\ApiException;
-use GlimpseImg\AuthException;
-use GlimpseImg\Client;
-use GlimpseImg\ForbiddenException;
-use GlimpseImg\FrameCounter;
-use GlimpseImg\ImageFormat;
-use GlimpseImg\RateLimitException;
-use GlimpseImg\SampleProbe;
-use GlimpseImg\SizeEstimate;
 use Illuminate\Support\Str;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpseCli\Support\Paths;
+use MathiasGrimm\GlimpseCli\Support\Sleeper;
+use MathiasGrimm\GlimpsePhp\ApiException;
+use MathiasGrimm\GlimpsePhp\AuthException;
+use MathiasGrimm\GlimpsePhp\Client;
+use MathiasGrimm\GlimpsePhp\ForbiddenException;
+use MathiasGrimm\GlimpsePhp\FrameCounter;
+use MathiasGrimm\GlimpsePhp\ImageFormat;
+use MathiasGrimm\GlimpsePhp\RateLimitException;
+use MathiasGrimm\GlimpsePhp\SampleProbe;
+use MathiasGrimm\GlimpsePhp\SizeEstimate;
 
 trait AnalyzesImages
 {

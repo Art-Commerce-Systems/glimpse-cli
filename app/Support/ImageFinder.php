@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Support;
+namespace MathiasGrimm\GlimpseCli\Support;
 
 use FilesystemIterator;
-use GlimpseImg\ImageFormat;
+use MathiasGrimm\GlimpsePhp\ImageFormat;
 use RecursiveCallbackFilterIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;

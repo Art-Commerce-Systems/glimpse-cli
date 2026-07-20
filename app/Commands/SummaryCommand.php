@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Support\Banner;
-use App\Support\BannerDescriber;
 use Illuminate\Console\Application;
 use Illuminate\Contracts\Container\Container;
+use MathiasGrimm\GlimpseCli\Support\Banner;
+use MathiasGrimm\GlimpseCli\Support\BannerDescriber;
 use NunoMaduro\LaravelConsoleSummary\SummaryCommand as BaseSummaryCommand;
 use Symfony\Component\Console\Command\ListCommand;
 use Symfony\Component\Console\Input\InputInterface;

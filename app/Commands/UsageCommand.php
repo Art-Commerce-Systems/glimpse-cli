@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use GlimpseImg\Client;
-use GlimpseImg\UsageSummary;
+use MathiasGrimm\GlimpsePhp\Client;
+use MathiasGrimm\GlimpsePhp\UsageSummary;
 
 class UsageCommand extends GlimpseCommand
 {

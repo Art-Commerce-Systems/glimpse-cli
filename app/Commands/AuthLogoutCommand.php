@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Glimpse\Config;
 use LaravelZero\Framework\Commands\Command;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 
 class AuthLogoutCommand extends Command
 {

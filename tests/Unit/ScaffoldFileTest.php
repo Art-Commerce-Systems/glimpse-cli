@@ -1,7 +1,7 @@
 <?php
 
-use App\Support\ScaffoldFile;
-use GlimpseImg\ApiException;
+use MathiasGrimm\GlimpseCli\Support\ScaffoldFile;
+use MathiasGrimm\GlimpsePhp\ApiException;
 
 function scaffoldRoot(): string
 {

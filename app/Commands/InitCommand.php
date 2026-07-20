@@ -1,13 +1,13 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\GuardsApiErrors;
-use App\Support\BaselineFile;
-use App\Support\IgnoreFile;
-use App\Support\Paths;
-use App\Support\ScaffoldFile;
 use LaravelZero\Framework\Commands\Command;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\GuardsApiErrors;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpseCli\Support\IgnoreFile;
+use MathiasGrimm\GlimpseCli\Support\Paths;
+use MathiasGrimm\GlimpseCli\Support\ScaffoldFile;
 
 class InitCommand extends Command
 {

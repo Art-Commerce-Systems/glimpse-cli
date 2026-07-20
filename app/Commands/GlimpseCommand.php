@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\GuardsApiErrors;
-use App\Glimpse\Config;
-use GlimpseImg\ApiException;
-use GlimpseImg\ImageResult;
 use LaravelZero\Framework\Commands\Command;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\GuardsApiErrors;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
+use MathiasGrimm\GlimpsePhp\ApiException;
+use MathiasGrimm\GlimpsePhp\ImageResult;
 
 abstract class GlimpseCommand extends Command
 {

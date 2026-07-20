@@ -1,6 +1,6 @@
 <?php
 
-use App\Glimpse\Config;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 
 describe('token', function () {
     test('returns null when nothing is configured', function () {

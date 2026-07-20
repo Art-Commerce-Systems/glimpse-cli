@@ -1,9 +1,9 @@
 <?php
 
-use GlimpseImg\AuthException;
-use GlimpseImg\Client;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use MathiasGrimm\GlimpsePhp\AuthException;
+use MathiasGrimm\GlimpsePhp\Client;
 use Tests\Fixtures\Images;
 
 test('the container client resolves the env token on every request', function () {

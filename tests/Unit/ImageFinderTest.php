@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\ImageFinder;
+use MathiasGrimm\GlimpseCli\Support\ImageFinder;
 
 test('finds image files recursively, sorted by pathname', function () {
     createImage('zebra.png');

@@ -1,11 +1,11 @@
 <?php
 
-use App\Commands\SummaryCommand as GlimpseSummaryCommand;
 use Illuminate\Console\Scheduling\ScheduleFinishCommand;
 use Illuminate\Console\Scheduling\ScheduleListCommand;
 use Illuminate\Console\Scheduling\ScheduleRunCommand;
 use Illuminate\Foundation\Console\VendorPublishCommand;
 use LaravelZero\Framework\Commands\StubPublishCommand;
+use MathiasGrimm\GlimpseCli\Commands\SummaryCommand as GlimpseSummaryCommand;
 use NunoMaduro\LaravelConsoleSummary\SummaryCommand;
 use Symfony\Component\Console\Command\DumpCompletionCommand;
 use Symfony\Component\Console\Command\HelpCommand;

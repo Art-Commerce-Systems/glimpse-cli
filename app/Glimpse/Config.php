@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Glimpse;
+namespace MathiasGrimm\GlimpseCli\Glimpse;
 
 final class Config
 {

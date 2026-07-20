@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace MathiasGrimm\GlimpseCli\Support;
 
 /**
  * Wraps sleep() so tests can record the requested delays instead of

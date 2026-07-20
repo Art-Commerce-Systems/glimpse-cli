@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Commands\Concerns;
+namespace MathiasGrimm\GlimpseCli\Commands\Concerns;
 
-use App\Support\BaselineFile;
-use App\Support\IgnoreFile;
-use App\Support\Paths;
-use GlimpseImg\ApiException;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpseCli\Support\IgnoreFile;
+use MathiasGrimm\GlimpseCli\Support\Paths;
+use MathiasGrimm\GlimpsePhp\ApiException;
 
 trait UpdatesBaseline
 {

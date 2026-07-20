@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\IgnoreFile;
+use MathiasGrimm\GlimpseCli\Support\IgnoreFile;
 
 function ignoreFile(string $content): IgnoreFile
 {

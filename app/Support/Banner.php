@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace MathiasGrimm\GlimpseCli\Support;
 
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Terminal;

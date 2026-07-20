@@ -1,6 +1,6 @@
 <?php
 
-use App\Glimpse\Config;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 
 test('removes the stored token', function () {
     $config = app(Config::class);

@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\UpdatesBaseline;
-use GlimpseImg\ApiException;
-use GlimpseImg\Client;
-use GlimpseImg\ImageFormat;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\UpdatesBaseline;
+use MathiasGrimm\GlimpsePhp\ApiException;
+use MathiasGrimm\GlimpsePhp\Client;
+use MathiasGrimm\GlimpsePhp\ImageFormat;
 
 class ConvertCommand extends GlimpseCommand
 {

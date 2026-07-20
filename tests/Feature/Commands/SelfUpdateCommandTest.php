@@ -1,7 +1,7 @@
 <?php
 
-use App\Updater\GithubReleasesStrategy;
 use Illuminate\Support\Facades\Artisan;
+use MathiasGrimm\GlimpseCli\Updater\GithubReleasesStrategy;
 
 test('the self-update command is only available inside a production build', function () {
     expect(Artisan::all())->not->toHaveKey('self-update');

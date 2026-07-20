@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\AnalyzesImages;
-use App\Support\BaselineFile;
-use App\Support\ImageFinder;
-use App\Support\Paths;
-use GlimpseImg\ApiException;
-use GlimpseImg\Client;
-use GlimpseImg\ImageFormat;
-use GlimpseImg\SampleProbe;
 use Illuminate\Support\Str;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\AnalyzesImages;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpseCli\Support\ImageFinder;
+use MathiasGrimm\GlimpseCli\Support\Paths;
+use MathiasGrimm\GlimpsePhp\ApiException;
+use MathiasGrimm\GlimpsePhp\Client;
+use MathiasGrimm\GlimpsePhp\ImageFormat;
+use MathiasGrimm\GlimpsePhp\SampleProbe;
 use Symfony\Component\Console\Helper\TableSeparator;
 
 class AnalyzeCommand extends GlimpseCommand

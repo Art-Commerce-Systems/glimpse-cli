@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\GuardsApiErrors;
-use App\Glimpse\Config;
-use GlimpseImg\Client;
 use LaravelZero\Framework\Commands\Command;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\GuardsApiErrors;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
+use MathiasGrimm\GlimpsePhp\Client;
 
 class AuthStatusCommand extends Command
 {

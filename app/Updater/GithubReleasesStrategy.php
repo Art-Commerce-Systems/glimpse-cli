@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Updater;
+namespace MathiasGrimm\GlimpseCli\Updater;
 
 use Humbug\SelfUpdate\Strategy\GithubStrategy as HumbugGithubStrategy;
 use Humbug\SelfUpdate\Updater;

@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\UpdatesBaseline;
-use GlimpseImg\Client;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\UpdatesBaseline;
+use MathiasGrimm\GlimpsePhp\Client;
 
 class OptimizeCommand extends GlimpseCommand
 {

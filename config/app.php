@@ -1,6 +1,6 @@
 <?php
 
-use App\Providers\AppServiceProvider;
+use MathiasGrimm\GlimpseCli\Providers\AppServiceProvider;
 
 return [
 

@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use App\Commands\Concerns\UpdatesBaseline;
-use GlimpseImg\ApiException;
-use GlimpseImg\Client;
+use MathiasGrimm\GlimpseCli\Commands\Concerns\UpdatesBaseline;
+use MathiasGrimm\GlimpsePhp\ApiException;
+use MathiasGrimm\GlimpsePhp\Client;
 
 class ResizeCommand extends GlimpseCommand
 {

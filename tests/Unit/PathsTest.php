@@ -1,6 +1,6 @@
 <?php
 
-use App\Support\Paths;
+use MathiasGrimm\GlimpseCli\Support\Paths;
 
 test('root is the current working directory with normalized separators', function () {
     chdirWorkspace();

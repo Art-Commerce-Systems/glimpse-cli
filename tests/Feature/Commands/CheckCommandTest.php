@@ -1,8 +1,8 @@
 <?php
 
-use App\Glimpse\Config;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 
 beforeEach(function () {
     putenv('GLIMPSE_TOKEN=test-token');

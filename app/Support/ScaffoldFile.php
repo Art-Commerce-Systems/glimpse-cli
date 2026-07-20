@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Support;
+namespace MathiasGrimm\GlimpseCli\Support;
 
-use GlimpseImg\ApiException;
+use MathiasGrimm\GlimpsePhp\ApiException;
 
 /**
  * Writes the files init scaffolds from its templates, safely in both

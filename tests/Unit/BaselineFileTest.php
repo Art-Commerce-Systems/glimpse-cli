@@ -1,7 +1,7 @@
 <?php
 
-use App\Support\BaselineFile;
-use GlimpseImg\ApiException;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpsePhp\ApiException;
 
 test('a missing or empty file is an empty baseline', function () {
     $path = createImage('photo.png');

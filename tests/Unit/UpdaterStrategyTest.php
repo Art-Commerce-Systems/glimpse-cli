@@ -1,7 +1,7 @@
 <?php
 
-use App\Updater\GithubReleasesStrategy;
 use Humbug\SelfUpdate\Strategy\GithubStrategy as HumbugGithubStrategy;
+use MathiasGrimm\GlimpseCli\Updater\GithubReleasesStrategy;
 
 test('an explicitly set phar name is preserved', function () {
     $strategy = new GithubReleasesStrategy;

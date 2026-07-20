@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Providers;
+namespace MathiasGrimm\GlimpseCli\Providers;
 
-use App\Glimpse\Config;
-use GlimpseImg\Client;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Support\ServiceProvider;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
+use MathiasGrimm\GlimpsePhp\Client;
 
 class AppServiceProvider extends ServiceProvider
 {

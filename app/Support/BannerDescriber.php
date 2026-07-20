@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace MathiasGrimm\GlimpseCli\Support;
 
 use Illuminate\Console\Application;
 use NunoMaduro\LaravelConsoleSummary\Contracts\DescriberContract;

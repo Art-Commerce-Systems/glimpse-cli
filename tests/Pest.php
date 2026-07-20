@@ -1,8 +1,8 @@
 <?php
 
-use App\Support\BaselineFile;
-use App\Support\Sleeper;
 use Illuminate\Support\Facades\File;
+use MathiasGrimm\GlimpseCli\Support\BaselineFile;
+use MathiasGrimm\GlimpseCli\Support\Sleeper;
 use Tests\Fixtures\Images;
 use Tests\TestCase;
 

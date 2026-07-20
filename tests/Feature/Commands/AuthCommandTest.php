@@ -1,8 +1,8 @@
 <?php
 
-use App\Glimpse\Config;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 
 test('verifies the token against /user and saves it', function () {
     Http::fake(['*/user' => Http::response(['id' => 7, 'name' => 'Mathias', 'email' => 'mathias@example.com', 'created_at' => '2025-11-03T09:30:00.000000Z'])]);

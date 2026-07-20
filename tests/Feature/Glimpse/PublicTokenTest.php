@@ -1,6 +1,6 @@
 <?php
 
-use App\Glimpse\Config;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
 
 test('the built-in public token is the last resort', function () {
     $config = new Config(publicTokenOverride: 'pub-token');

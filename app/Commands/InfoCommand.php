@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Commands;
+namespace MathiasGrimm\GlimpseCli\Commands;
 
-use GlimpseImg\Client;
-use GlimpseImg\ImageInfo;
+use MathiasGrimm\GlimpsePhp\Client;
+use MathiasGrimm\GlimpsePhp\ImageInfo;
 
 class InfoCommand extends GlimpseCommand
 {

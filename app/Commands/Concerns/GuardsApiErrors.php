@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Commands\Concerns;
+namespace MathiasGrimm\GlimpseCli\Commands\Concerns;
 
-use App\Glimpse\Config;
 use Closure;
-use GlimpseImg\ApiException;
-use GlimpseImg\AuthException;
-use GlimpseImg\ForbiddenException;
-use GlimpseImg\RateLimitException;
-use GlimpseImg\ValidationException;
 use Illuminate\Http\Client\ConnectionException;
+use MathiasGrimm\GlimpseCli\Glimpse\Config;
+use MathiasGrimm\GlimpsePhp\ApiException;
+use MathiasGrimm\GlimpsePhp\AuthException;
+use MathiasGrimm\GlimpsePhp\ForbiddenException;
+use MathiasGrimm\GlimpsePhp\RateLimitException;
+use MathiasGrimm\GlimpsePhp\ValidationException;
 
 trait GuardsApiErrors
 {
