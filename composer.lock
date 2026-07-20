@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8c73494d15ecc9f002664e788a27b84e",
+    "content-hash": "c0baf0f8670301bca85bd060d55f1b96",
     "packages": [],
     "packages-dev": [
         {
@@ -2973,16 +2973,16 @@
         },
         {
             "name": "mathiasgrimm/glimpse-php",
-            "version": "v2.0.1",
+            "version": "v3.0.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/mathiasgrimm/glimpse-php.git",
-                "reference": "a9a770242c3dd7bce8428f29f3591574d5269fa0"
+                "reference": "c4bd182e07fcdb52e65e44d8c4236dbb30213768"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/a9a770242c3dd7bce8428f29f3591574d5269fa0",
-                "reference": "a9a770242c3dd7bce8428f29f3591574d5269fa0",
+                "url": "https://api.github.com/repos/mathiasgrimm/glimpse-php/zipball/c4bd182e07fcdb52e65e44d8c4236dbb30213768",
+                "reference": "c4bd182e07fcdb52e65e44d8c4236dbb30213768",
                 "shasum": ""
             },
             "require": {
@@ -3002,7 +3002,7 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "GlimpseImg\\": "src/"
+                    "MathiasGrimm\\GlimpsePhp\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
@@ -3036,7 +3036,7 @@
                 "issues": "https://github.com/mathiasgrimm/glimpse-php/issues",
                 "source": "https://github.com/mathiasgrimm/glimpse-php"
             },
-            "time": "2026-07-19T16:04:12+00:00"
+            "time": "2026-07-20T17:31:28+00:00"
         },
         {
             "name": "mockery/mockery",
