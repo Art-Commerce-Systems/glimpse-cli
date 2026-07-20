@@ -15,6 +15,8 @@ class UsageCommand extends GlimpseCommand
     public function handle(Client $client): int
     {
         return $this->runGuarded(function () use ($client) {
+            $this->rejectPublicToken();
+
             $usage = $client->usage();
 
             if ($this->option('json')) {

@@ -64,7 +64,9 @@ class AnalyzeCommand extends GlimpseCommand
 
         [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-        $estimates = $this->estimateRows($client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes)));
+        $estimates = $this->estimateRows($this->analyzeWithRetry(
+            fn (): array => $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes)),
+        ));
 
         if ($target !== null) {
             $estimates = [$this->pick($estimates, $target)
@@ -125,13 +127,18 @@ class AnalyzeCommand extends GlimpseCommand
 
         $rows = [];
 
-        foreach ($files as $path) {
-            $rows[] = $this->analyzeFile($client, $probe, $dir, $path, $target, $quality);
-            $bar?->advance();
-        }
+        try {
+            foreach ($files as $path) {
+                $rows[] = $this->analyzeFile($client, $probe, $dir, $path, $target, $quality);
+                $bar?->advance();
+            }
 
-        $bar?->finish();
-        $bar?->clear();
+            $bar?->finish();
+        } finally {
+            // An aborting exception (auth, rate limit, forbidden) must
+            // not leave a half-rendered bar under the error output.
+            $bar?->clear();
+        }
 
         if ($bar !== null) {
             $this->newLine();

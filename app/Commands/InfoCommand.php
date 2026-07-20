@@ -16,6 +16,8 @@ class InfoCommand extends GlimpseCommand
     public function handle(Client $client): int
     {
         return $this->runGuarded(function () use ($client) {
+            $this->rejectPublicToken();
+
             $info = $client->info($this->readImage($this->inputArgument()));
 
             if ($this->option('json')) {

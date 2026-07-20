@@ -6,6 +6,26 @@ final class Config
 {
     private const DEFAULT_API_URL = 'https://glimpseimg.com/api';
 
+    /**
+     * The published analyze-only CI token, baked into each release so
+     * `glimpse check` works on fork pull requests without a repository
+     * secret. It can only call the analyze endpoint and its rate limits
+     * are shared per runner IP. Empty in the repository; the release
+     * process fills it in before tagging, and an empty value keeps the
+     * fallback off.
+     */
+    private const PUBLIC_TOKEN = '';
+
+    private readonly string $publicToken;
+
+    /**
+     * @param  ?string  $publicTokenOverride  Test seam: stands in for the baked PUBLIC_TOKEN constant
+     */
+    public function __construct(?string $publicTokenOverride = null)
+    {
+        $this->publicToken = $publicTokenOverride ?? self::PUBLIC_TOKEN;
+    }
+
     public function token(): ?string
     {
         $env = getenv('GLIMPSE_TOKEN');
@@ -14,7 +34,24 @@ final class Config
             return $env;
         }
 
-        return $this->storedToken();
+        return $this->storedToken() ?? $this->publicToken();
+    }
+
+    public function publicToken(): ?string
+    {
+        return $this->publicToken === '' ? null : $this->publicToken;
+    }
+
+    /**
+     * Whether requests would go out with the built-in public token, so
+     * commands it cannot serve fail fast and error hints can suggest
+     * getting a personal token.
+     */
+    public function usingPublicToken(): bool
+    {
+        $public = $this->publicToken();
+
+        return $public !== null && $this->token() === $public;
     }
 
     public function storedToken(): ?string

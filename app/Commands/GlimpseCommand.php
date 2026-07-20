@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Commands\Concerns\GuardsApiErrors;
+use App\Glimpse\Config;
 use GlimpseImg\ApiException;
 use GlimpseImg\ImageResult;
 use LaravelZero\Framework\Commands\Command;
@@ -12,6 +13,18 @@ abstract class GlimpseCommand extends Command
     use GuardsApiErrors;
 
     protected const MAX_INPUT_BYTES = 15 * 1024 * 1024;
+
+    /**
+     * Refuse the built-in public token before any API call. The server
+     * rejects it with a 403 anyway; failing here means a transform never
+     * uploads the image bytes just to be turned away.
+     */
+    protected function rejectPublicToken(): void
+    {
+        if (app(Config::class)->usingPublicToken()) {
+            throw new ApiException('The built-in public CI token only runs check and analyze. Run `glimpse auth` or set GLIMPSE_TOKEN to use this command.');
+        }
+    }
 
     protected function inputArgument(): string
     {

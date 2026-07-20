@@ -1,6 +1,7 @@
 <?php
 
 use App\Glimpse\Config;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
 test('reports when not authenticated', function () {
@@ -33,4 +34,20 @@ test('an invalid stored token surfaces the auth hint', function () {
     $this->artisan('auth:status')
         ->expectsOutputToContain('Invalid or missing token. Run: glimpse auth')
         ->assertExitCode(1);
+});
+
+test('reports the built-in public token as not authenticated, without calling the API', function () {
+    putenv('GLIMPSE_TOKEN');
+    app()->instance(Config::class, new Config(publicTokenOverride: 'pub-token'));
+    Http::fake();
+
+    $exitCode = Artisan::call('auth:status');
+
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(1)
+        ->and($output)->toContain('built-in public CI token')
+        ->and($output)->toContain('The public token only runs check and analyze.');
+
+    Http::assertNothingSent();
 });

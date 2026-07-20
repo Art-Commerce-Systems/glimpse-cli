@@ -1,4 +1,4 @@
-.PHONY: test build release check-version verify-phar
+.PHONY: test build release check-version check-public-token verify-phar
 
 # Usage:
 #   make test                        run Pint, PHPStan, and the Pest suite
@@ -26,7 +26,13 @@ build: check-version
 verify-phar:
 	@php scripts/verify-phar.php
 
-release: check-version
+# The workflow template no longer skips runs without a token, so the
+# shipped CLI must carry a real public token: with an empty constant,
+# fork pull requests fail on authentication instead of being checked.
+check-public-token:
+	@! grep -q "private const PUBLIC_TOKEN = '';" app/Glimpse/Config.php || { echo "Config::PUBLIC_TOKEN is empty. Bake the published analyze-only token before releasing."; exit 1; }
+
+release: check-version check-public-token
 	@[ "$$(git branch --show-current)" = "main" ] || { echo "Releases are cut from main."; exit 1; }
 	@[ -z "$$(git status --porcelain)" ] || { echo "Working tree is dirty; commit or stash first."; exit 1; }
 	# vendor/ is what actually gets compiled in, so sync it to the lock: a

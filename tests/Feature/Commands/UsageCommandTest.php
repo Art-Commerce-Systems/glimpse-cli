@@ -1,5 +1,6 @@
 <?php
 
+use App\Glimpse\Config;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
@@ -59,4 +60,17 @@ test('fails cleanly without a token', function () {
     $this->artisan('usage')
         ->expectsOutputToContain('Not authenticated. Run: glimpse auth')
         ->assertExitCode(1);
+});
+
+test('refuses the built-in public token without calling the API', function () {
+    putenv('GLIMPSE_TOKEN');
+    app()->instance(Config::class, new Config(publicTokenOverride: 'pub-token'));
+    Http::fake();
+
+    $exitCode = Artisan::call('usage');
+
+    expect($exitCode)->toBe(1)
+        ->and(Artisan::output())->toContain('The built-in public CI token only runs check and analyze.');
+
+    Http::assertNothingSent();
 });

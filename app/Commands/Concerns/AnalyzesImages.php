@@ -4,17 +4,27 @@ namespace App\Commands\Concerns;
 
 use App\Support\BaselineFile;
 use App\Support\Paths;
+use App\Support\Sleeper;
+use Closure;
 use GlimpseImg\ApiException;
 use GlimpseImg\AuthException;
 use GlimpseImg\Client;
+use GlimpseImg\ForbiddenException;
 use GlimpseImg\FrameCounter;
 use GlimpseImg\ImageFormat;
+use GlimpseImg\RateLimitException;
 use GlimpseImg\SampleProbe;
 use GlimpseImg\SizeEstimate;
 use Illuminate\Support\Str;
 
 trait AnalyzesImages
 {
+    private const RATE_LIMIT_MAX_RETRIES = 3;
+
+    private const RATE_LIMIT_DEFAULT_DELAY_SECONDS = 5;
+
+    private const RATE_LIMIT_MAX_DELAY_SECONDS = 60;
+
     /**
      * Size and content hash of each file this run analyzed, captured from
      * the exact bytes that were measured, so --update-baseline records
@@ -48,7 +58,9 @@ trait AnalyzesImages
 
             [$width, $height, $sampleBpp] = $this->measure($probe, $bytes);
 
-            $estimates = $this->estimateRows($client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes)));
+            $estimates = $this->estimateRows($this->analyzeWithRetry(
+                fn (): array => $client->analyze($format, strlen($bytes), $width, $height, $quality, $sampleBpp, $this->frames($bytes)),
+            ));
 
             $pick = $this->pick($estimates, $target) ?? throw new ApiException(
                 $target === null ? 'No estimates returned.' : 'No estimate for '.strtoupper($target->value).'.',
@@ -57,8 +69,47 @@ trait AnalyzesImages
             return ['file' => $file, 'source_format' => $format->value, 'source_size' => strlen($bytes)] + $pick;
         } catch (AuthException $exception) {
             throw $exception;
+        } catch (RateLimitException|ForbiddenException $exception) {
+            // Retries are exhausted, or the token may not analyze at all;
+            // every remaining file would fail the same way, so abort the
+            // batch instead of burning through it and recording the same
+            // per-file error over and over.
+            throw $exception;
         } catch (ApiException $exception) {
             return ['file' => $file, 'error' => $exception->getMessage()];
+        }
+    }
+
+    /**
+     * Run one analyze call, riding out brief rate limiting: wait out the
+     * Retry-After delay for a few attempts, then give up and let the
+     * rate limit exception propagate. A delay beyond the cap means the
+     * limit window outlives any sane retry budget (retrying inside it is
+     * a guaranteed 429), so that gives up right away.
+     *
+     * @param  Closure(): list<SizeEstimate>  $call
+     * @return list<SizeEstimate>
+     */
+    private function analyzeWithRetry(Closure $call): array
+    {
+        $retries = 0;
+
+        while (true) {
+            try {
+                return $call();
+            } catch (RateLimitException $exception) {
+                $delay = $exception->retryAfterSeconds ?? self::RATE_LIMIT_DEFAULT_DELAY_SECONDS;
+
+                if ($retries++ >= self::RATE_LIMIT_MAX_RETRIES || $delay > self::RATE_LIMIT_MAX_DELAY_SECONDS) {
+                    throw $exception;
+                }
+
+                // Stderr, so --json consumers reading stdout stay parseable,
+                // and the wait never looks like a hang.
+                fwrite(STDERR, sprintf('Rate limited; retrying in %ds.%s', $delay, PHP_EOL));
+
+                app(Sleeper::class)->sleep($delay);
+            }
         }
     }
 

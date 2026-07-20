@@ -26,6 +26,8 @@ class ResizeCommand extends GlimpseCommand
     public function handle(Client $client): int
     {
         return $this->runGuarded(function () use ($client) {
+            $this->rejectPublicToken();
+
             $input = $this->inputArgument();
             $output = $this->resolveOutput($input);
             $width = $this->intOption('width');

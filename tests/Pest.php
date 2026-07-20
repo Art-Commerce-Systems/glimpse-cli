@@ -1,6 +1,7 @@
 <?php
 
 use App\Support\BaselineFile;
+use App\Support\Sleeper;
 use Illuminate\Support\Facades\File;
 use Tests\Fixtures\Images;
 use Tests\TestCase;
@@ -141,6 +142,28 @@ function baselineEntry(string $path, string $via = 'analyze'): array
 function baselineFiles(?string $directory = null): array
 {
     return json_decode((string) file_get_contents(baselinePath($directory)), true)['files'];
+}
+
+/**
+ * Swap the container's Sleeper for one that records requested delays
+ * instead of sleeping. Read its $delays after the run.
+ */
+function fakeSleeper(): object
+{
+    $sleeper = new class extends Sleeper
+    {
+        /** @var list<int> */
+        public array $delays = [];
+
+        public function sleep(int $seconds): void
+        {
+            $this->delays[] = $seconds;
+        }
+    };
+
+    app()->instance(Sleeper::class, $sleeper);
+
+    return $sleeper;
 }
 
 /**

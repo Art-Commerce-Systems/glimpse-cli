@@ -66,12 +66,12 @@ class InitCommand extends Command
      * (the bin is the committed phar), so the install only downloads the
      * package itself; no cache step is worth the extra YAML.
      *
-     * The check step is guarded on the token (mapped into the job env,
-     * because the secrets context is not available in step-level if
-     * expressions): fork pull requests never receive repository
-     * secrets, so those runs skip the check with a visible warning
-     * instead of failing on an authentication error, and the push run
-     * after the merge still gates with the real secret.
+     * The GLIMPSE_TOKEN secret is optional. When the env var is empty
+     * (fork pull requests never receive repository secrets, and a fresh
+     * repository may not have set it yet), the CLI falls back to its
+     * built-in public token, which can only call the analyze endpoint
+     * and shares rate limits per runner IP. A repository's own secret
+     * gives higher limits and usage attribution.
      */
     public const WORKFLOW_TEMPLATE = <<<'YAML'
         name: Glimpse
@@ -88,6 +88,9 @@ class InitCommand extends Command
           check-images:
             runs-on: ubuntu-latest
             env:
+              # Optional. Without it (for example on fork pull requests, which
+              # never receive secrets) the CLI uses its built-in public token,
+              # which only allows check and analyze and shares rate limits.
               GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
             steps:
               - uses: actions/checkout@v6
@@ -96,11 +99,7 @@ class InitCommand extends Command
                   composer global require --no-interaction --no-progress mathiasgrimm/glimpse-cli
                   composer global config bin-dir --absolute --quiet >> "$GITHUB_PATH"
               - name: Check images
-                if: env.GLIMPSE_TOKEN != ''
                 run: glimpse check .
-              - name: Skipped (no token)
-                if: env.GLIMPSE_TOKEN == ''
-                run: echo "::warning::GLIMPSE_TOKEN is not available (fork PR, or the secret is not set); image check skipped."
 
         YAML;
 
@@ -294,13 +293,13 @@ class InitCommand extends Command
         }
 
         if ($this->workflowWritten) {
-            $steps[] = 'Set the GLIMPSE_TOKEN secret on the repository: gh secret set GLIMPSE_TOKEN';
+            $steps[] = 'Optional: set the GLIMPSE_TOKEN secret for higher rate limits and usage attribution: gh secret set GLIMPSE_TOKEN';
             $steps[] = 'Commit '.IgnoreFile::FILENAME.', '.BaselineFile::FILENAME.', and '.self::WORKFLOW_PATH.'.';
         } else {
             $steps[] = 'Commit '.IgnoreFile::FILENAME.' and '.BaselineFile::FILENAME.'.';
 
             $steps[] = $this->workflowKept
-                ? 'Review '.self::WORKFLOW_PATH.' and make sure the GLIMPSE_TOKEN secret is set: gh secret set GLIMPSE_TOKEN'
+                ? 'Review '.self::WORKFLOW_PATH.'; the GLIMPSE_TOKEN secret is optional but gives higher rate limits: gh secret set GLIMPSE_TOKEN'
                 : 'Gate new images in CI: glimpse check .  (see https://glimpseimg.com/docs/cli/continuous-integration)';
         }
 

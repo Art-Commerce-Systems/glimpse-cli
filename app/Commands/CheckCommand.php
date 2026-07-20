@@ -52,13 +52,18 @@ class CheckCommand extends GlimpseCommand
 
             $rows = [];
 
-            foreach ($files as $path) {
-                $rows[] = $this->analyzeFile($client, $probe, $dir, $path, target: null, quality: null);
-                $bar?->advance();
-            }
+            try {
+                foreach ($files as $path) {
+                    $rows[] = $this->analyzeFile($client, $probe, $dir, $path, target: null, quality: null);
+                    $bar?->advance();
+                }
 
-            $bar?->finish();
-            $bar?->clear();
+                $bar?->finish();
+            } finally {
+                // An aborting exception (auth, rate limit, forbidden) must
+                // not leave a half-rendered bar under the error output.
+                $bar?->clear();
+            }
 
             if ($bar !== null) {
                 $this->newLine();

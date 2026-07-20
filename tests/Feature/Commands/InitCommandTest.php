@@ -331,7 +331,7 @@ describe('workflow scaffolding', function () {
         $output = Artisan::output();
 
         expect($output)->toContain('Created '.InitCommand::WORKFLOW_PATH.'.')
-            ->and($output)->toContain('Set the GLIMPSE_TOKEN secret on the repository: gh secret set GLIMPSE_TOKEN')
+            ->and($output)->toContain('Optional: set the GLIMPSE_TOKEN secret for higher rate limits and usage attribution: gh secret set GLIMPSE_TOKEN')
             ->and($output)->toContain('Commit '.IgnoreFile::FILENAME.', '.BaselineFile::FILENAME.', and '.InitCommand::WORKFLOW_PATH.'.')
             ->and($output)->not->toContain('Gate new images in CI')
             ->and((string) file_get_contents(workflowPath()))->toBe(InitCommand::WORKFLOW_TEMPLATE);
@@ -348,7 +348,7 @@ describe('workflow scaffolding', function () {
         $this->artisan('init')
             ->expectsConfirmation(INIT_SEED_QUESTION)
             ->expectsOutputToContain(InitCommand::WORKFLOW_PATH.' already exists, kept (use --workflow --force to recreate it).')
-            ->expectsOutputToContain('Review '.InitCommand::WORKFLOW_PATH.' and make sure the GLIMPSE_TOKEN secret is set: gh secret set GLIMPSE_TOKEN')
+            ->expectsOutputToContain('Review '.InitCommand::WORKFLOW_PATH.'; the GLIMPSE_TOKEN secret is optional but gives higher rate limits: gh secret set GLIMPSE_TOKEN')
             ->assertExitCode(0);
 
         expect((string) file_get_contents(workflowPath()))->toBe($content);
@@ -432,7 +432,7 @@ describe('workflow scaffolding', function () {
         $output = Artisan::output();
 
         expect($output)->toContain('Review '.InitCommand::WORKFLOW_PATH)
-            ->and($output)->not->toContain('Set the GLIMPSE_TOKEN secret on the repository');
+            ->and($output)->not->toContain('set the GLIMPSE_TOKEN secret for higher rate limits');
 
         chdirWorkspace(workspace().'/fresh');
 

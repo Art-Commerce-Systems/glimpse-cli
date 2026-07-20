@@ -1,5 +1,6 @@
 <?php
 
+use App\Glimpse\Config;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 
@@ -21,6 +22,112 @@ function fakeAnalyze(?float $bestPercent = null): void
         ['format' => 'png', 'size' => 71, 'saved' => -1, 'saved_percent' => -1.4, 'quality' => null],
     ]])]);
 }
+
+test('rides out a rate limit waiting the Retry-After delay and still succeeds', function () {
+    $sleeper = fakeSleeper();
+
+    Http::fake(['*/v1/analyze' => Http::sequence()
+        ->push(['message' => 'Too Many Requests'], 429, ['Retry-After' => '17'])
+        ->push(['data' => [
+            ['format' => 'webp', 'size' => 68, 'saved' => 2, 'saved_percent' => 2.8, 'quality' => 85],
+        ]])]);
+
+    $path = createImage();
+
+    expect(Artisan::call('check', ['input' => $path]))->toBe(0)
+        ->and($sleeper->delays)->toBe([17]);
+
+    Http::assertSentCount(2);
+});
+
+test('a rate limit without Retry-After waits the default delay', function () {
+    $sleeper = fakeSleeper();
+
+    Http::fake(['*/v1/analyze' => Http::sequence()
+        ->push(['message' => 'Too Many Requests'], 429)
+        ->push(['data' => [
+            ['format' => 'webp', 'size' => 68, 'saved' => 2, 'saved_percent' => 2.8, 'quality' => 85],
+        ]])]);
+
+    $path = createImage();
+
+    expect(Artisan::call('check', ['input' => $path]))->toBe(0)
+        ->and($sleeper->delays)->toBe([5]);
+});
+
+test('a Retry-After beyond the cap aborts the batch without retrying or sleeping', function () {
+    $sleeper = fakeSleeper();
+
+    Http::fake(['*/v1/analyze' => Http::response(['message' => 'Too Many Requests'], 429, ['Retry-After' => '300'])]);
+
+    createImage('a.png');
+    createImage('b.png');
+
+    $exitCode = Artisan::call('check', ['input' => workspace()]);
+
+    expect($exitCode)->toBe(1)
+        ->and(Artisan::output())->toContain('Retry after 300 seconds.')
+        ->and($sleeper->delays)->toBe([]);
+
+    // The first file aborts the whole batch: the second file is never sent.
+    Http::assertSentCount(1);
+});
+
+test('gives up after repeated rate limits and suggests a personal token on the public one', function () {
+    putenv('GLIMPSE_TOKEN');
+    app()->instance(Config::class, new Config(publicTokenOverride: 'pub-token'));
+    $sleeper = fakeSleeper();
+
+    Http::fake(['*/v1/analyze' => Http::response(['message' => 'Too Many Requests'], 429, ['Retry-After' => '0'])]);
+
+    $path = createImage();
+
+    $exitCode = Artisan::call('check', ['input' => $path]);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(1)
+        ->and($output)->toContain('Too Many Requests')
+        ->and($output)->toContain('Get your own free token at https://glimpseimg.com')
+        ->and($sleeper->delays)->toBe([0, 0, 0]);
+
+    // One initial attempt plus three retries, then the batch aborts.
+    Http::assertSentCount(4);
+});
+
+test('an ability rejection aborts the batch with the public token hint', function () {
+    putenv('GLIMPSE_TOKEN');
+    app()->instance(Config::class, new Config(publicTokenOverride: 'pub-token'));
+
+    Http::fake(['*/v1/analyze' => Http::response(['message' => 'Invalid ability provided.'], 403)]);
+
+    createImage('a.png');
+    createImage('b.png');
+
+    $exitCode = Artisan::call('check', ['input' => workspace()]);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(1)
+        ->and($output)->toContain('Invalid ability provided.')
+        ->and($output)->toContain('Get your own free token at https://glimpseimg.com');
+
+    Http::assertSentCount(1);
+});
+
+test('a rejected public token gets the hint on 401 too', function () {
+    putenv('GLIMPSE_TOKEN');
+    app()->instance(Config::class, new Config(publicTokenOverride: 'pub-token'));
+
+    Http::fake(['*/v1/analyze' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+    $path = createImage();
+
+    $exitCode = Artisan::call('check', ['input' => $path]);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(1)
+        ->and($output)->toContain('Run: glimpse auth')
+        ->and($output)->toContain('Get your own free token at https://glimpseimg.com');
+});
 
 test('lists images over the threshold and exits 1', function () {
     fakeAnalyze();

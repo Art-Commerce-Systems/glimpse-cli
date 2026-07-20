@@ -1,5 +1,6 @@
 <?php
 
+use App\Glimpse\Config;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
@@ -423,6 +424,34 @@ test('rejects inputs over the 15 MiB limit before any HTTP request', function ()
     $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
         ->expectsOutputToContain('The image exceeds the 15 MiB limit.')
         ->assertExitCode(1);
+
+    Http::assertNothingSent();
+});
+
+test('a 403 shows the API message without the public token hint', function () {
+    Http::fake(['*/v1/convert' => Http::response(['message' => 'Invalid ability provided.'], 403)]);
+
+    $path = createImage();
+
+    $exitCode = Artisan::call('convert', ['input' => $path, '--format' => 'jpg']);
+    $output = Artisan::output();
+
+    expect($exitCode)->toBe(1)
+        ->and($output)->toContain('Invalid ability provided.')
+        ->and($output)->not->toContain('Get your own free token');
+});
+
+test('refuses the built-in public token before uploading anything', function () {
+    putenv('GLIMPSE_TOKEN');
+    app()->instance(Config::class, new Config(publicTokenOverride: 'pub-token'));
+    Http::fake();
+
+    $path = createImage();
+
+    $exitCode = Artisan::call('convert', ['input' => $path, '--format' => 'jpg']);
+
+    expect($exitCode)->toBe(1)
+        ->and(Artisan::output())->toContain('The built-in public CI token only runs check and analyze.');
 
     Http::assertNothingSent();
 });
