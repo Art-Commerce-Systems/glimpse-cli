@@ -11,7 +11,7 @@ const INIT_SEED_QUESTION = 'Scan the current directory and record every image in
 
 const INIT_WORKFLOW_QUESTION = 'Add a GitHub Actions workflow that runs glimpse check on pull requests and pushes to main (.github/workflows/glimpse.yml)?';
 
-const INIT_EMPTY_BASELINE_WARNING = 'The baseline is empty but the workflow gates images, so the first CI run will flag every image already in the repository. Seed the baseline before pushing: glimpse analyze . --update-baseline';
+const INIT_EMPTY_BASELINE_WARNING = 'The baseline is empty but the workflow gates images, so the first CI run will re-check every image in the repository and fail on any that would benefit from optimization. Seed the baseline before pushing: glimpse analyze . --update-baseline';
 
 function ignorePath(): string
 {
@@ -540,7 +540,7 @@ describe('empty baseline warning', function () {
         Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
 
         expect(Artisan::call('init', ['--workflow' => true, '--update-baseline' => true]))->toBe(0)
-            ->and(Artisan::output())->not->toContain('first CI run will flag');
+            ->and(Artisan::output())->not->toContain('first CI run will re-check');
     });
 
     test('no warning when no workflow is involved', function () {
@@ -549,6 +549,56 @@ describe('empty baseline warning', function () {
         Http::fake();
 
         expect(Artisan::call('init'))->toBe(0)
-            ->and(Artisan::output())->not->toContain('first CI run will flag');
+            ->and(Artisan::output())->not->toContain('first CI run will re-check');
+    });
+
+    test('a baseline kept from an earlier run that is still empty also warns', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        Http::fake();
+
+        // First scripted run scaffolds the empty baseline, the second adds
+        // the workflow: the trap state is reached across two runs, so the
+        // warning must key on the file content, not on what this run did.
+        expect(Artisan::call('init'))->toBe(0)
+            ->and(Artisan::call('init', ['--workflow' => true]))->toBe(0)
+            ->and(Artisan::output())->toContain(INIT_EMPTY_BASELINE_WARNING);
+    });
+
+    test('no warning when a kept baseline is populated', function () {
+        chdirWorkspace();
+        $entry = baselineEntry(createImage('photo.png'));
+        writeBaseline(['photo.png' => $entry]);
+        Http::fake();
+
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(0)
+            ->and(Artisan::output())->not->toContain('first CI run will re-check');
+    });
+
+    test('a failed seed with a workflow still warns and keeps the failure exit code', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        putenv('GLIMPSE_TOKEN=test-token');
+        Http::fake(['*/v1/analyze' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+        expect(Artisan::call('init', ['--update-baseline' => true, '--workflow' => true]))->toBe(1)
+            ->and(Artisan::output())->toContain(INIT_EMPTY_BASELINE_WARNING);
+    });
+
+    test('a failed refresh of a populated baseline does not claim it is empty', function () {
+        chdirWorkspace();
+        $entry = baselineEntry(createImage('photo.png'));
+        writeBaseline(['photo.png' => $entry]);
+        // A new image forces a real API call during the refresh; the
+        // unchanged photo.png alone would be reused from its hash and the
+        // scan would succeed without ever hitting the fake.
+        createImage('new.png');
+        putenv('GLIMPSE_TOKEN=test-token');
+        Http::fake(['*/v1/analyze' => Http::response(['message' => 'Unauthenticated.'], 401)]);
+
+        // The refresh fails but the populated baseline on disk is intact,
+        // so CI behaves exactly as before the run: no warning.
+        expect(Artisan::call('init', ['--update-baseline' => true, '--workflow' => true]))->toBe(1)
+            ->and(Artisan::output())->not->toContain('The baseline is empty');
     });
 });

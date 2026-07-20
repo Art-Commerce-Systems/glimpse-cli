@@ -105,13 +105,6 @@ class InitCommand extends Command
         YAML;
 
     /**
-     * Whether this run recorded the current images into the baseline (the
-     * seed scan ran and succeeded, or the baseline already existed), which
-     * drops the "accept the current images" next-steps hint.
-     */
-    private bool $baselinePopulated = false;
-
-    /**
      * Whether this run wrote the workflow file (created or recreated),
      * and whether it found and kept an existing one. Together with
      * "neither" they pick the next-steps variant.
@@ -125,7 +118,6 @@ class InitCommand extends Command
         return $this->runGuarded(function () {
             // The console application reuses the resolved command instance,
             // so the flags must not carry over from an earlier in-process run.
-            $this->baselinePopulated = false;
             $this->workflowWritten = false;
             $this->workflowKept = false;
 
@@ -140,7 +132,11 @@ class InitCommand extends Command
 
             $this->setUpWorkflow($root);
 
-            $this->printNextSteps();
+            // The empty-baseline warning and the seed hint key on what is
+            // actually on disk after the run, not on what this run did: a
+            // baseline kept from an earlier run may itself be empty, and a
+            // failed refresh leaves a populated baseline intact.
+            $this->printNextSteps(baselineEmpty: BaselineFile::load($root)->count() === 0);
 
             return $exitCode;
         });
@@ -174,10 +170,13 @@ class InitCommand extends Command
      * answer is read as that answer.
      *
      * The dangerous shape is an empty baseline COMBINED with the workflow:
-     * the CI gate then flags every image already in the repository. That
-     * exact combination happens on every scripted `init --workflow` run,
-     * because the seed confirm silently falls through to No, so
-     * printNextSteps() warns loudly when the run ends in that state.
+     * the CI gate then re-checks every image already in the repository and
+     * fails on any above the check threshold. That combination happens on
+     * every scripted `init --workflow` run, because the seed confirm
+     * silently falls through to No, so printNextSteps() warns loudly when
+     * the run ends in that state. Emptiness is read from the file on disk,
+     * not from what this run did: a kept baseline may itself be empty, and
+     * a failed refresh leaves a populated baseline intact.
      */
     private function setUpBaseline(string $root): int
     {
@@ -195,7 +194,6 @@ class InitCommand extends Command
         }
 
         if ($exists) {
-            $this->baselinePopulated = true;
             $this->line(BaselineFile::FILENAME.' already exists, kept.');
 
             return self::SUCCESS;
@@ -219,8 +217,6 @@ class InitCommand extends Command
         $exitCode = $this->call('analyze', ['input' => '.', '--update-baseline' => true]);
 
         if ($exitCode === self::SUCCESS) {
-            $this->baselinePopulated = true;
-
             return self::SUCCESS;
         }
 
@@ -284,16 +280,16 @@ class InitCommand extends Command
         return file_exists($root.'/.git');
     }
 
-    private function printNextSteps(): void
+    private function printNextSteps(bool $baselineEmpty): void
     {
-        if (! $this->baselinePopulated && ($this->workflowWritten || $this->workflowKept)) {
+        if ($baselineEmpty && ($this->workflowWritten || $this->workflowKept)) {
             $this->newLine();
-            $this->warn('The baseline is empty but the workflow gates images, so the first CI run will flag every image already in the repository. Seed the baseline before pushing: glimpse analyze . --update-baseline');
+            $this->warn('The baseline is empty but the workflow gates images, so the first CI run will re-check every image in the repository and fail on any that would benefit from optimization. Seed the baseline before pushing: glimpse analyze . --update-baseline');
         }
 
         $steps = ['Review '.IgnoreFile::FILENAME.' and tune the patterns for your project.'];
 
-        if (! $this->baselinePopulated) {
+        if ($baselineEmpty) {
             $steps[] = 'Accept the current images as already handled: glimpse analyze . --update-baseline';
         }
 
