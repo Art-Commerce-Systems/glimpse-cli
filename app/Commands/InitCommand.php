@@ -172,6 +172,12 @@ class InitCommand extends Command
      * is at end-of-file, the usual CI shape, so those runs fall through to
      * the empty baseline with zero API calls. Piped input that carries an
      * answer is read as that answer.
+     *
+     * The dangerous shape is an empty baseline COMBINED with the workflow:
+     * the CI gate then flags every image already in the repository. That
+     * exact combination happens on every scripted `init --workflow` run,
+     * because the seed confirm silently falls through to No, so
+     * printNextSteps() warns loudly when the run ends in that state.
      */
     private function setUpBaseline(string $root): int
     {
@@ -280,6 +286,11 @@ class InitCommand extends Command
 
     private function printNextSteps(): void
     {
+        if (! $this->baselinePopulated && ($this->workflowWritten || $this->workflowKept)) {
+            $this->newLine();
+            $this->warn('The baseline is empty but the workflow gates images, so the first CI run will flag every image already in the repository. Seed the baseline before pushing: glimpse analyze . --update-baseline');
+        }
+
         $steps = ['Review '.IgnoreFile::FILENAME.' and tune the patterns for your project.'];
 
         if (! $this->baselinePopulated) {

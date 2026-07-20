@@ -11,6 +11,8 @@ const INIT_SEED_QUESTION = 'Scan the current directory and record every image in
 
 const INIT_WORKFLOW_QUESTION = 'Add a GitHub Actions workflow that runs glimpse check on pull requests and pushes to main (.github/workflows/glimpse.yml)?';
 
+const INIT_EMPTY_BASELINE_WARNING = 'The baseline is empty but the workflow gates images, so the first CI run will flag every image already in the repository. Seed the baseline before pushing: glimpse analyze . --update-baseline';
+
 function ignorePath(): string
 {
     return workspace().'/'.IgnoreFile::FILENAME;
@@ -506,4 +508,47 @@ describe('workflow scaffolding', function () {
             ->and(baselineFiles())->toBe([]);
     });
 
+});
+
+describe('empty baseline warning', function () {
+    test('a scripted init --workflow that leaves the baseline empty warns loudly', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        Http::fake();
+
+        // Artisan::call cannot answer the seed confirm, so it falls through
+        // to No: the exact shape of every scripted `init --workflow` run.
+        expect(Artisan::call('init', ['--workflow' => true]))->toBe(0)
+            ->and(Artisan::output())->toContain(INIT_EMPTY_BASELINE_WARNING);
+
+        Http::assertNothingSent();
+    });
+
+    test('a kept existing workflow with an empty baseline also warns', function () {
+        chdirWorkspace();
+        writeWorkflow();
+        Http::fake();
+
+        expect(Artisan::call('init'))->toBe(0)
+            ->and(Artisan::output())->toContain(INIT_EMPTY_BASELINE_WARNING);
+    });
+
+    test('no warning when the baseline is seeded in the same run', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        putenv('GLIMPSE_TOKEN=test-token');
+        Http::fake(['*/v1/analyze' => Http::response(fakeAnalyzeResponse())]);
+
+        expect(Artisan::call('init', ['--workflow' => true, '--update-baseline' => true]))->toBe(0)
+            ->and(Artisan::output())->not->toContain('first CI run will flag');
+    });
+
+    test('no warning when no workflow is involved', function () {
+        chdirWorkspace();
+        createImage('photo.png');
+        Http::fake();
+
+        expect(Artisan::call('init'))->toBe(0)
+            ->and(Artisan::output())->not->toContain('first CI run will flag');
+    });
 });
