@@ -61,6 +61,10 @@ class InitCommand extends Command
      * when the template changes. The glimpseimg.com repo runs a
      * docs-drift workflow that compares the two and fails on mismatch.
      *
+     * PHP is pinned with setup-php so the check runs on the newest
+     * stable instead of the runner image default (8.4 today) and stays
+     * deterministic as that default drifts.
+     *
      * The install goes through Composer so every CI run is counted as a
      * Packagist install. The package declares no runtime dependencies
      * (the bin is the committed phar), so the install only downloads the
@@ -94,6 +98,10 @@ class InitCommand extends Command
               GLIMPSE_TOKEN: ${{ secrets.GLIMPSE_TOKEN }}
             steps:
               - uses: actions/checkout@v6
+              - uses: shivammathur/setup-php@v2
+                with:
+                  php-version: '8.5'
+                  coverage: none
               - name: Install glimpse
                 run: |
                   composer global require --no-interaction --no-progress mathiasgrimm/glimpse-cli
