@@ -40,6 +40,12 @@ function lockRuntimeClosure(): array
         $installed[$package['name']] = $package;
     }
 
+    // Providers are collected from every installed package, dev ones included,
+    // and version constraints are ignored. That is deliberately conservative:
+    // an unresolvable name pulls in anything that could satisfy it, so the walk
+    // can only ever over-report the runtime set. Over-reporting means a dev
+    // package escapes the exclude list and the phar grows; under-reporting
+    // would drop a needed package and break the phar at runtime.
     $providers = [];
     foreach ($installed as $name => $package) {
         foreach (array_keys(($package['provide'] ?? []) + ($package['replace'] ?? [])) as $virtual) {
@@ -71,27 +77,30 @@ function lockRuntimeClosure(): array
 }
 
 /**
- * @return array<int, string> The vendor exclude entries from box.json,
- *                            either vendor dirs ('pestphp') or full package
- *                            names ('laravel/pint').
+ * The exclude entries of the single vendor finder in box.json, always full
+ * package names ('laravel/pint'). Fails when box.json grows a second vendor
+ * finder, which would leave this test and make verify-phar reading different
+ * lists.
+ *
+ * @return array<int, string>
  */
 function boxVendorExcludes(): array
 {
     $box = json_decode((string) file_get_contents(base_path('box.json')), true);
 
-    foreach ($box['finder'] as $finder) {
-        if (in_array('vendor', (array) ($finder['in'] ?? []), true)) {
-            return $finder['exclude'] ?? [];
-        }
-    }
+    $vendorFinders = array_values(array_filter(
+        $box['finder'],
+        fn (array $finder): bool => in_array('vendor', (array) ($finder['in'] ?? []), true),
+    ));
 
-    return [];
+    expect($vendorFinders)->toHaveCount(1, 'box.json must declare exactly one finder over vendor; this test and the verify-phar target both assume a single exclude list.');
+
+    return $vendorFinders[0]['exclude'] ?? [];
 }
 
 function isExcludedFromPhar(string $package, array $excludes): bool
 {
-    return in_array(explode('/', $package)[0], $excludes, true)
-        || in_array($package, $excludes, true);
+    return in_array($package, $excludes, true);
 }
 
 test('every locked package is either a runtime dependency or excluded from the phar', function () {
@@ -116,6 +125,15 @@ test('no runtime dependency is excluded from the phar', function () {
     ));
 
     expect($wronglyExcluded)->toBe([], 'These packages are needed at runtime but the vendor exclude list in box.json would keep them out of the phar: '.implode(', ', $wronglyExcluded));
+});
+
+test('every exclude entry is a full package name, never a bare vendor directory', function () {
+    $bare = array_values(array_filter(
+        boxVendorExcludes(),
+        fn (string $exclude): bool => ! str_contains($exclude, '/'),
+    ));
+
+    expect($bare)->toBe([], 'Symfony Finder drops every directory whose basename matches a slashless exclude, at any depth: a bare "phpstan" entry also stripped tools/phpstan out of two runtime packages. Use the full package name instead: '.implode(', ', $bare));
 });
 
 test('the runtime roots are still installed packages', function () {

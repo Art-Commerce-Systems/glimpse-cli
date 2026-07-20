@@ -24,11 +24,15 @@ build: check-version
 # BoxExcludeListTest guards box.json against composer.lock; this guards the
 # phar against box.json.
 verify-phar:
-	@php -r '$$box = json_decode(file_get_contents("box.json"), true); $$ex = []; foreach ($$box["finder"] as $$f) { if (in_array("vendor", (array) ($$f["in"] ?? []), true)) { $$ex = $$f["exclude"] ?? []; } } if ($$ex === []) { fwrite(STDERR, "no vendor excludes found in box.json\n"); exit(1); } copy("builds/glimpse", $$tmp = sys_get_temp_dir()."/glimpse-verify.phar"); $$bad = []; foreach (new RecursiveIteratorIterator(new Phar($$tmp)) as $$file) { foreach ($$ex as $$e) { if (str_contains($$file->getPathname(), "/vendor/".$$e."/")) { $$bad[$$e] = true; } } } unlink($$tmp); if ($$bad) { fwrite(STDERR, "builds/glimpse contains excluded packages: ".implode(", ", array_keys($$bad))."\n"); exit(1); } echo "builds/glimpse is clean: no excluded packages inside\n";'
+	@php scripts/verify-phar.php
 
 release: check-version
 	@[ "$$(git branch --show-current)" = "main" ] || { echo "Releases are cut from main."; exit 1; }
 	@[ -z "$$(git status --porcelain)" ] || { echo "Working tree is dirty; commit or stash first."; exit 1; }
+	# vendor/ is what actually gets compiled in, so sync it to the lock: a
+	# package left behind by a branch switch would otherwise ship inside the
+	# phar, unseen by both guards (they only know composer.lock and box.json).
+	composer install --no-interaction
 	composer test
 	$(MAKE) build VERSION=$(VERSION)
 	git add builds/glimpse
