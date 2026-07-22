@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
 use Tests\Fixtures\Images;
 
@@ -22,6 +23,25 @@ test('resizes and writes a .resized output next to the input', function () {
 
     Http::assertSent(fn (Request $request) => $request['width'] === 800
         && ! array_key_exists('height', $request->data()));
+});
+
+test('never carries a psnr key, since the resize response has none', function () {
+    fakeTransform('resize');
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.resized.jpg';
+
+    $exitCode = Artisan::call('resize', ['input' => $input, '--width' => '800', '--json' => true]);
+
+    expect($exitCode)->toBe(0)
+        ->and(json_decode(Artisan::output(), true))->toBe([
+            'output' => $expectedOutput,
+            'format' => 'jpg',
+            'mime_type' => 'image/jpeg',
+            'size' => strlen(Images::jpg()),
+            'width' => 1280,
+            'height' => 720,
+        ]);
 });
 
 test('--in-place overwrites the input file without --force', function () {

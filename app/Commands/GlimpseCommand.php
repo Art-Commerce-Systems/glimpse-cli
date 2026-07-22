@@ -152,14 +152,20 @@ abstract class GlimpseCommand extends Command
     protected function emit(ImageResult $result, string $path): void
     {
         if ($this->option('json')) {
-            $line = (string) json_encode([
+            $payload = [
                 'output' => $path,
                 'format' => $result->format,
                 'mime_type' => $result->mimeType,
                 'size' => $result->size,
                 'width' => $result->width,
                 'height' => $result->height,
-            ], JSON_UNESCAPED_SLASHES);
+            ];
+
+            if ($result->psnr !== null) {
+                $payload['psnr'] = $result->psnr;
+            }
+
+            $line = (string) json_encode($payload, JSON_UNESCAPED_SLASHES);
 
             $path === '-' ? fwrite(STDERR, $line.PHP_EOL) : $this->line($line);
 
@@ -167,12 +173,13 @@ abstract class GlimpseCommand extends Command
         }
 
         $summary = sprintf(
-            'Wrote %s (%s, %s, %dx%d)',
+            'Wrote %s (%s, %s, %dx%d%s)',
             $path === '-' ? 'stdout' : $path,
             $result->mimeType,
             $this->humanSize($result->size),
             $result->width,
             $result->height,
+            $result->psnr === null ? '' : sprintf(', PSNR %.2F dB', $result->psnr), // %.2F is locale-independent; %.2f would print a comma under some locales
         );
 
         $path === '-' ? fwrite(STDERR, $summary.PHP_EOL) : $this->info($summary);

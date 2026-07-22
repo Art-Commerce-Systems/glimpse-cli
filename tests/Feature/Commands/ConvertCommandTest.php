@@ -240,6 +240,59 @@ test('prints result metadata as JSON with --json', function () {
         ]);
 });
 
+test('includes the psnr in the JSON output when the API reports one', function () {
+    fakeTransform('convert', 'webp', ['psnr' => 41.27]);
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.webp';
+
+    $exitCode = Artisan::call('convert', ['input' => $input, '--format' => 'webp', '--json' => true]);
+
+    expect($exitCode)->toBe(0)
+        ->and(json_decode(Artisan::output(), true))->toBe([
+            'output' => $expectedOutput,
+            'format' => 'webp',
+            'mime_type' => 'image/webp',
+            'size' => strlen(Images::jpg()),
+            'width' => 1280,
+            'height' => 720,
+            'psnr' => 41.27,
+        ]);
+});
+
+test('omits the psnr from the JSON output when the API reports null', function () {
+    fakeTransform('convert', 'webp', ['psnr' => null]);
+
+    $input = createImage('photo.png');
+
+    $exitCode = Artisan::call('convert', ['input' => $input, '--format' => 'webp', '--json' => true]);
+
+    expect($exitCode)->toBe(0)
+        ->and(json_decode(Artisan::output(), true))->not->toHaveKey('psnr');
+});
+
+test('leaves PSNR out of the human summary when the API reports null', function () {
+    fakeTransform('convert', 'webp', ['psnr' => null]);
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.webp';
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
+        ->expectsOutput("Wrote {$expectedOutput} (image/webp, ".strlen(Images::jpg()).' B, 1280x720)')
+        ->assertExitCode(0);
+});
+
+test('appends the psnr to the human summary when the API reports one', function () {
+    fakeTransform('convert', 'webp', ['psnr' => 41.27]);
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.webp';
+
+    $this->artisan('convert', ['input' => $input, '--format' => 'webp'])
+        ->expectsOutputToContain("Wrote {$expectedOutput} (image/webp, ".strlen(Images::jpg()).' B, 1280x720, PSNR 41.27 dB)')
+        ->assertExitCode(0);
+});
+
 test('stdin input requires an explicit output path', function () {
     Http::fake();
 
