@@ -23,6 +23,17 @@ test('optimizes and writes a .optimized output next to the input', function () {
     Http::assertSent(fn (Request $request) => $request['quality'] === 70);
 });
 
+test('appends the psnr to the summary when the API reports one', function () {
+    fakeTransform('optimize', 'jpg', ['psnr' => 43.75]);
+
+    $input = createImage('photo.png');
+    $expectedOutput = dirname($input).'/photo.optimized.jpg';
+
+    $this->artisan('optimize', ['input' => $input])
+        ->expectsOutputToContain("Wrote {$expectedOutput} (image/jpeg, ".strlen(Images::jpg()).' B, 1280x720, PSNR 43.75 dB)')
+        ->assertExitCode(0);
+});
+
 test('--in-place overwrites the input file without --force', function () {
     fakeTransform('optimize', 'png');
 

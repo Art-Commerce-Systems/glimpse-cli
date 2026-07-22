@@ -190,11 +190,12 @@ function fakeAnalyzeResponse(): array
 /**
  * A canned successful transform-endpoint response envelope.
  *
+ * @param  array<string, mixed>  $overrides
  * @return array{data: array<string, mixed>}
  */
-function fakeTransformResponse(string $format = 'jpg', string $mimeType = 'image/jpeg'): array
+function fakeTransformResponse(string $format = 'jpg', string $mimeType = 'image/jpeg', array $overrides = []): array
 {
-    return ['data' => [
+    return ['data' => $overrides + [
         'output' => ['type' => 'BASE64', 'data' => Images::JPG_BASE64],
         'format' => $format,
         'mime_type' => $mimeType,
@@ -207,8 +208,10 @@ function fakeTransformResponse(string $format = 'jpg', string $mimeType = 'image
 /**
  * Fake a transform endpoint (convert, optimize, resize, thumbnail) with a
  * canned successful response reporting the given output format.
+ *
+ * @param  array<string, mixed>  $overrides
  */
-function fakeTransform(string $endpoint, string $format = 'jpg'): void
+function fakeTransform(string $endpoint, string $format = 'jpg', array $overrides = []): void
 {
     $mimeType = [
         'jpg' => 'image/jpeg',
@@ -218,5 +221,5 @@ function fakeTransform(string $endpoint, string $format = 'jpg'): void
         'avif' => 'image/avif',
     ][$format];
 
-    Http::fake(["*/v1/{$endpoint}" => Http::response(fakeTransformResponse($format, $mimeType))]);
+    Http::fake(["*/v1/{$endpoint}" => Http::response(fakeTransformResponse($format, $mimeType, $overrides))]);
 }
